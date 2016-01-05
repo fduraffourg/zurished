@@ -73,10 +73,10 @@ navButton cstyle address action =
     ]
     []
 
-view: Signal.Address Action -> Model -> Html
-view address model =
+view: Signal.Address Action -> (Int, Int) -> Model -> Html
+view address windowSize model =
   div []
-    [ ImageView.view  model.current
+    [ ImageView.view windowSize model.current
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
     ]

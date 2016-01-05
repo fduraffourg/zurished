@@ -1,7 +1,8 @@
 module ImageView (Model, init, Action, update, view) where
 
 import Html exposing (..)
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (src, style)
+import Window
 
 -- MODEL
 
@@ -23,7 +24,15 @@ update action model =
 
 -- VIEW
 
-view : Model -> Html
-view model =
-  div []
-    [ img [ src model ] [] ]
+view : (Int, Int) -> Model -> Html
+view (w,h) model =
+  let
+    width = (toString (w-5)) ++ "px"
+    height = (toString (h-5)) ++ "px"
+  in
+    div [ style [ ("width", width), ("height", height)]]
+    [ img
+      [ src model
+      , style [ ("max-width", width), ("max-height", height), ("margin", "auto") ]
+      ]
+      [] ]
