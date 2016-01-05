@@ -3,6 +3,7 @@ module ListView (Model, init, Action(Prev,Next,NoOp), update, view) where
 import List
 import Html exposing (..)
 import Html.Events exposing (..)
+import Html.Attributes exposing (..)
 import Debug
 import Signal
 
@@ -58,10 +59,24 @@ update action model =
 
 -- VIEW
 
+navButton : List (String, String) -> Signal.Address Action -> Action -> Html
+navButton cstyle address action =
+  let navStyle =
+    [ ("position", "absolute")
+    , ("width", "50%")
+    , ("height", "100%")
+    , ("top", "0px")
+    ]
+  in div
+    [ onClick address action
+    , style (List.append navStyle cstyle)
+    ]
+    []
+
 view: Signal.Address Action -> Model -> Html
 view address model =
   div []
-    [ button [ onClick address Prev ] [ text "Prev" ]
-    , ImageView.view  model.current
-    , button [ onClick address Next ]  [ text "Next" ]
+    [ ImageView.view  model.current
+    , navButton [("left", "0px")] address Prev
+    , navButton [("right", "0px")] address Next
     ]
