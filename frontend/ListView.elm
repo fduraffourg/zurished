@@ -1,9 +1,10 @@
-module ListView (Model, init, Action, update, view) where
+module ListView (Model, init, Action(Prev,Next,NoOp), update, view) where
 
 import List
 import Html exposing (..)
 import Html.Events exposing (..)
 import Debug
+import Signal
 
 import ImageView
 
@@ -34,7 +35,7 @@ position model =
   Inside
 
 
-type Action = Next | Prev
+type Action = Next | Prev | NoOp
 
 update : Action -> Model -> Model
 update action model =
@@ -53,13 +54,14 @@ update action model =
           , current = Maybe.withDefault "" (List.head (List.drop start model.previous))
           , next = model.current :: model.next
           }
+        (_, _) -> model
 
 -- VIEW
 
 view: Signal.Address Action -> Model -> Html
 view address model =
   div []
-    [ button [ onClick (Debug.log "address" address) Prev ] [ text "Prev" ]
+    [ button [ onClick address Prev ] [ text "Prev" ]
     , ImageView.view  model.current
-    , button [ onClick address Next ] [ text "Next" ]
+    , button [ onClick address Next ]  [ text "Next" ]
     ]
