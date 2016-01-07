@@ -1,4 +1,4 @@
-module Struct (TopContent, emptyTopContent, Image, topContentDecoder, topFolders) where
+module Struct (TopContent, emptyTopContent, Image, topContentDecoder, topFolders, imageInPath) where
 
 import Json.Decode as Json exposing ((:=), Decoder, string, list)
 import String
@@ -58,3 +58,8 @@ topFolders list =
   |> List.filter isJust
   |> List.map (Maybe.withDefault "")
   |> listUnique
+
+
+imageInPath : String -> Image -> Bool
+imageInPath path image =
+  if String.startsWith path image.path then True else False
