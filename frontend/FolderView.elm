@@ -1,4 +1,4 @@
-module FolderView (Model, initModel, view, Action(Goto, NoOp)) where
+module FolderView (Model, initModel, view, Action(ChangePath, NoOp)) where
 
 import Struct
 import String
@@ -24,7 +24,7 @@ initModel path images =
     }
 
 
-type Action = Goto String | NoOp
+type Action = ChangePath String | NoOp
 
 -- VIEW
 
@@ -32,16 +32,26 @@ view : Signal.Address Action -> Model -> Html
 view address model =
   let
     imageList = ul [] (List.map (imageToItem address) model.images)
-    folderList = ul []
+    pathList = ul []
       (String.split "/" model.path
         |> List.foldl foldPath [("", "[root]")]
         |> List.reverse
+        |> List.map (pathToItem address)
+      )
+    folderList = ul []
+      (model.images
+        |> Struct.listFolders model.path
         |> List.map (folderToItem address)
       )
+    title = if model.path == "" then "[root]" else model.path
   in
     div []
-      [ h1 [] [ text model.path ]
+      [ h1 [] [ text title ]
+      , h2 [] [ text "Path" ]
+      , pathList
+      , h2 [] [ text "Sub Folders" ]
       , folderList
+      , h2 [] [ text "Images" ]
       , imageList
       ]
 
@@ -50,7 +60,7 @@ foldPath : String -> List (String, String) -> List (String, String)
 foldPath part prev =
   let
     (prevPath, _) = Maybe.withDefault ("", "") (List.head prev)
-    newItem = (prevPath ++ "/" ++ part, part)
+    newItem = (Struct.pathMerge prevPath part, part)
   in
     newItem :: prev
 
@@ -64,5 +74,17 @@ imageToItem address image =
   in
     li [] [ text name ]
 
+pathToItem : Signal.Address Action -> (String, String) -> Html
+pathToItem address (path,name) =
+  li
+    [ onClick address (ChangePath path) ]
+    -- [ text (name ++ " - " ++ path) ]
+    [ text name ]
+
 folderToItem : Signal.Address Action -> (String, String) -> Html
-folderToItem address (path,name) = li [ onClick address (Goto path) ] [ text name ]
+folderToItem address (path, name) =
+  li
+    [ onClick address (ChangePath path) ]
+    -- [ text (name ++ " - " ++ path) ]
+    [ text name ]
+

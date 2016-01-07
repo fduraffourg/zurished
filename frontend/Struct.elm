@@ -1,4 +1,4 @@
-module Struct (TopContent, emptyTopContent, Image, topContentDecoder, topFolders, imageInPath) where
+module Struct (TopContent, emptyTopContent, Image, topContentDecoder, topFolders, imageInPath, listFolders, pathMerge, pathRelative) where
 
 import Json.Decode as Json exposing ((:=), Decoder, string, list)
 import String
@@ -60,6 +60,38 @@ topFolders list =
   |> listUnique
 
 
+listFolders : String -> List Image -> List (String, String)
+listFolders path list =
+  let
+    listFolders = list
+      |> List.map .path
+      |> List.filter (String.startsWith path)
+      |> List.map (pathRelative path)
+      |> List.map (String.split "/")
+      |> List.filterMap List.head
+      |> listUnique
+    listPaths = listFolders
+      |> List.map (pathMerge path)
+  in
+    List.map2 (,) listPaths listFolders
+
+
 imageInPath : String -> Image -> Bool
 imageInPath path image =
   if String.startsWith path image.path then True else False
+
+pathMerge : String -> String -> String
+pathMerge start end =
+  case (start, end) of
+    ("", "") -> ""
+    ("", end) -> end
+    (start, "") -> start
+    (start, end) -> start ++ "/" ++ end
+
+pathRelative : String -> String -> String
+pathRelative subpath path =
+  let
+    lenPath = String.length subpath
+    remains = String.dropLeft lenPath path
+  in
+    if (String.startsWith "/" remains) then (String.dropLeft 1 remains) else remains

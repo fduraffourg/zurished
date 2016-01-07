@@ -1,31 +1,77 @@
-import ListView
-import Keyboard
 import Signal
-import Window
+import Html exposing (..)
+import Task
+import Http
+import Struct
+import Debug
+import FolderView
+
+main : Signal Html
+main = Signal.map view
+  (Signal.foldp update initModel mb.signal)
 
 
-initState = ListView.init ["1.jpg", "2.jpg", "3.jpg"]
 
-main = Signal.map2 (ListView.view address) Window.dimensions mainState
+-- MODEL
 
-mainState : Signal ListView.Model
-mainState = Signal.foldp ListView.update initState input
+type alias Model =
+  { path : String
+  , content : Struct.TopContent
+  }
+
+initModel : Model
+initModel = { path = "", content = Struct.emptyTopContent }
 
 
--- INPUT
 
-messages : Signal.Mailbox ListView.Action
-messages = Signal.mailbox ListView.NoOp
-address = messages.address
+-- UPDATE
 
-keyboardToAction : { x:Int, y:Int } -> ListView.Action
-keyboardToAction {x,y} =
-  case x of
-    -1 -> ListView.Prev
-    1 -> ListView.Next
-    _ -> ListView.NoOp
+mb = Signal.mailbox NoOp
 
-keyboardInput = Signal.map keyboardToAction Keyboard.arrows
+type Action = UpdateContent Struct.TopContent | ChangePath String | NoOp
 
-input : Signal.Signal ListView.Action
-input = Signal.merge keyboardInput messages.signal
+update : Action -> Model -> Model
+update action model  =
+  case action of
+    UpdateContent content -> { model | content = content }
+    ChangePath path -> { model | path = path }
+    NoOp -> model
+
+
+
+-- VIEW
+
+view : Model -> Html
+view model = FolderView.view
+  explorerAddress
+  (FolderView.initModel model.path model.content.images)
+
+
+listStringToHtml string = li [] [ text string ]
+
+
+
+-- Explorer connectors
+
+explorerAddress = Signal.forwardTo mb.address signalExplorerToMain
+
+signalExplorerToMain : FolderView.Action -> Action
+signalExplorerToMain action = case action of
+  FolderView.ChangePath path -> ChangePath path
+  FolderView.NoOp -> NoOp
+
+
+
+-- Retrieve content from server
+
+httpAddress = Signal.forwardTo mb.address signalHttpToMain
+
+signalHttpToMain : Struct.TopContent -> Action
+signalHttpToMain content = UpdateContent content
+
+
+port fetchString : Task.Task Http.Error ()
+port fetchString = Task.andThen
+  (Http.get Struct.topContentDecoder "albums.json")
+  (Signal.send httpAddress)
+
