@@ -5,6 +5,7 @@ import String
 import List
 import Html exposing (..)
 import Html.Events exposing (onClick)
+import Html.Attributes exposing (style)
 import Signal
 
 -- MODEL
@@ -34,25 +35,27 @@ type Action = ChangePath String | NoOp
 view : Signal.Address Action -> Model -> Html
 view address model =
   let
-    imageList = ul [] (List.map (imageToItem address) model.content)
-    pathList = ul []
-      (String.split "/" model.path
+    title = if model.path == "" then "[root]" else model.path
+
+    -- PATH
+    path = if model.path == "" then [("", "[root]")] else
+      String.split "/" model.path
         |> List.foldl foldPath [("", "[root]")]
         |> List.reverse
-        |> List.map (pathToItem address)
-      )
-    folderList = ul []
-      (List.map (folderToItem address) model.folders)
-    title = if model.path == "" then "[root]" else model.path
+    pathElmts = List.map (pathToItem address) path
+    pathList = ul [ style cssPathList ]
+      (List.intersperse (li [ style cssPathItem ] [ text "/" ]) pathElmts)
+
+    -- CONTENT
+    folderItems = List.map (folderToItem address) model.folders
+    imageItems = List.map (imageToItem address) model.content
+    contentList = ul [ style cssContentList ]
+      (folderItems ++ imageItems)
   in
     div []
-      [ h1 [] [ text title ]
-      , h2 [] [ text "Path" ]
+      [ h1 [ style cssTitle ] [ text title ]
       , pathList
-      , h2 [] [ text "Sub Folders" ]
-      , folderList
-      , h2 [] [ text "Images" ]
-      , imageList
+      , contentList
       ]
 
 
@@ -72,19 +75,50 @@ imageToItem address image =
       |> String.split "/"
       |> List.foldl (\a b -> a) ""
   in
-    li [] [ text path ]
+    li [ style cssImageItem ] [ text path ]
 
 pathToItem : Signal.Address Action -> (String, String) -> Html
 pathToItem address (path,name) =
   li
-    [ onClick address (ChangePath path) ]
+    [ onClick address (ChangePath path)
+    , style cssPathItem ]
     -- [ text (name ++ " - " ++ path) ]
     [ text name ]
 
 folderToItem : Signal.Address Action -> Struct.Folder -> Html
 folderToItem address {path, name} =
   li
-    [ onClick address (ChangePath path) ]
+    [ onClick address (ChangePath path), style cssFolderItem ]
     -- [ text (name ++ " - " ++ path) ]
     [ text name ]
 
+
+-- CSS
+
+-- color1 = "#e5f4e3"
+-- color2 = "#5da9e9"
+-- color3 = "#003f91"
+-- color4 = "#ffffff"
+-- color5 = "#6d326d"
+color1 = "#086788"
+color2 = "#06aed5"
+color3 = "#f0c808"
+color4 = "#fff1d0"
+color5 = "#dd1c1a"
+
+cssClickable = [("cursor", "pointer")]
+
+cssTitle = [("margin", "0px"), ("background-color", color1), ("color", "white")
+  , ("padding", "20px"), ("text-align", "center")]
+
+cssPathList = [("padding", "5px"), ("background-color", color2), ("margin", "0px")
+  , ("padding", "14px"), ("color", "white"), ("font-weight", "bold")]
+cssPathItem = cssClickable ++ [("display", "inline-block"), ("padding", "0px 5px")]
+
+cssVerticalList = [("list-style-type", "none"), ("padding", "5px")]
+cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("background-color", color4)]
+
+cssContentList = cssVerticalList
+cssFolderItem = cssClickable ++ cssVerticalItem ++
+  [ ("background-color", color3), ("color", "white") ]
+cssImageItem = cssVerticalItem
