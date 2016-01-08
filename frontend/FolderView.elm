@@ -32,15 +32,17 @@ type Action = ChangePath String | NoOp
 
 -- VIEW
 
+rootName = "Top"
+
 view : Signal.Address Action -> Model -> Html
 view address model =
   let
-    title = if model.path == "" then "[root]" else model.path
+    title = if model.path == "" then rootName else model.path
 
     -- PATH
-    path = if model.path == "" then [("", "[root]")] else
+    path = if model.path == "" then [("", rootName)] else
       String.split "/" model.path
-        |> List.foldl foldPath [("", "[root]")]
+        |> List.foldl foldPath [("", rootName)]
         |> List.reverse
     pathElmts = List.map (pathToItem address) path
     pathList = ul [ style cssPathList ]
