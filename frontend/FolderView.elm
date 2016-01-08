@@ -12,15 +12,20 @@ import Signal
 type alias Model =
   { path : String
   , images : List Struct.Image
+  , folders : List Struct.Folder
+  , content : List Struct.Image
   }
 
 initModel : String -> List Struct.Image -> Model
 initModel path images =
   let
-    path = if String.endsWith "/" path then String.slice 0 -1 path else path
+    path = Struct.normPath path
+    -- content = Struct
   in
     { path = path
-    , images = List.filter (Struct.imageInPath path) images
+    , images = List.filter (Struct.imageInSubDirs path) images
+    , folders = Struct.listFolders path images
+    , content = List.filter (Struct.imageInDir path) images
     }
 
 
@@ -31,7 +36,7 @@ type Action = ChangePath String | NoOp
 view : Signal.Address Action -> Model -> Html
 view address model =
   let
-    imageList = ul [] (List.map (imageToItem address) model.images)
+    imageList = ul [] (List.map (imageToItem address) model.content)
     pathList = ul []
       (String.split "/" model.path
         |> List.foldl foldPath [("", "[root]")]
@@ -39,10 +44,7 @@ view address model =
         |> List.map (pathToItem address)
       )
     folderList = ul []
-      (model.images
-        |> Struct.listFolders model.path
-        |> List.map (folderToItem address)
-      )
+      (List.map (folderToItem address) model.folders)
     title = if model.path == "" then "[root]" else model.path
   in
     div []
@@ -72,7 +74,7 @@ imageToItem address image =
       |> String.split "/"
       |> List.foldl (\a b -> a) ""
   in
-    li [] [ text name ]
+    li [] [ text path ]
 
 pathToItem : Signal.Address Action -> (String, String) -> Html
 pathToItem address (path,name) =
@@ -81,8 +83,8 @@ pathToItem address (path,name) =
     -- [ text (name ++ " - " ++ path) ]
     [ text name ]
 
-folderToItem : Signal.Address Action -> (String, String) -> Html
-folderToItem address (path, name) =
+folderToItem : Signal.Address Action -> Struct.Folder -> Html
+folderToItem address {path, name} =
   li
     [ onClick address (ChangePath path) ]
     -- [ text (name ++ " - " ++ path) ]
