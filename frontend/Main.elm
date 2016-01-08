@@ -17,10 +17,13 @@ main = Signal.map view
 type alias Model =
   { path : String
   , content : Struct.TopContent
+  , currentView : View
   }
 
+type View = ExplorerView | ImageView (List Struct.Image) Struct.Image
+
 initModel : Model
-initModel = { path = "", content = Struct.emptyTopContent }
+initModel = { path = "", content = Struct.emptyTopContent, currentView = ExplorerView }
 
 
 
@@ -28,13 +31,14 @@ initModel = { path = "", content = Struct.emptyTopContent }
 
 mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent | ChangePath String | NoOp
+type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | NoOp
 
 update : Action -> Model -> Model
 update action model  =
   case action of
     UpdateContent content -> { model | content = content }
     ChangePath path -> { model | path = path }
+    ViewImages list current -> { model | currentView = ImageView list current}
     NoOp -> model
 
 
@@ -42,9 +46,12 @@ update action model  =
 -- VIEW
 
 view : Model -> Html
-view model = FolderView.view
-  explorerAddress
-  (FolderView.initModel model.path model.content.images)
+view model =
+  case model.currentView of
+    ExplorerView -> FolderView.view
+      explorerAddress
+      (FolderView.initModel model.path model.content.images)
+    ImageView list current -> div [] []
 
 
 listStringToHtml string = li [] [ text string ]
@@ -59,6 +66,7 @@ signalExplorerToMain : FolderView.Action -> Action
 signalExplorerToMain action = case action of
   FolderView.ChangePath path -> ChangePath path
   FolderView.NoOp -> NoOp
+  FolderView.ViewImages list current -> ViewImages list current
 
 
 

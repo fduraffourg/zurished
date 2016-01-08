@@ -1,4 +1,4 @@
-module FolderView (Model, initModel, view, Action(ChangePath, NoOp)) where
+module FolderView (Model, initModel, view, Action(ChangePath, ViewImages, NoOp)) where
 
 import Struct
 import String
@@ -28,7 +28,7 @@ initModel path images =
     }
 
 
-type Action = ChangePath String | NoOp
+type Action = ChangePath String | NoOp | ViewImages (List Struct.Image) Struct.Image
 
 -- VIEW
 
@@ -50,7 +50,9 @@ view address model =
 
     -- CONTENT
     folderItems = List.map (folderToItem address) model.folders
-    imageItems = List.map (imageToItem address) model.content
+    imageItems = List.map
+      (imageToItem address model.content)
+      model.content
     contentList = ul [ style cssContentList ]
       (folderItems ++ imageItems)
   in
@@ -69,15 +71,18 @@ foldPath part prev =
   in
     newItem :: prev
 
-imageToItem : Signal.Address Action -> Struct.Image -> Html
-imageToItem address image =
+imageToItem : Signal.Address Action -> List Struct.Image -> Struct.Image -> Html
+imageToItem address allImages image =
   let
     path = image.path
     name = path
       |> String.split "/"
       |> List.foldl (\a b -> a) ""
   in
-    li [ style cssImageItem ] [ text path ]
+    li
+      [ onClick address (ViewImages allImages image)
+      , style cssImageItem ]
+      [ text path ]
 
 pathToItem : Signal.Address Action -> (String, String) -> Html
 pathToItem address (path,name) =
@@ -123,4 +128,4 @@ cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("background-color", c
 cssContentList = cssVerticalList
 cssFolderItem = cssClickable ++ cssVerticalItem ++
   [ ("background-color", color3), ("color", "white") ]
-cssImageItem = cssVerticalItem
+cssImageItem = cssClickable ++ cssVerticalItem
