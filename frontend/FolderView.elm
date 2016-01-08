@@ -11,7 +11,6 @@ import Signal
 
 type alias Model =
   { path : String
-  , images : List Struct.Image
   , folders : List Struct.Folder
   , content : List Struct.Image
   }
@@ -23,7 +22,6 @@ initModel path images =
     -- content = Struct
   in
     { path = path
-    , images = List.filter (Struct.imageInSubDirs path) images
     , folders = Struct.listFolders path images
     , content = List.filter (Struct.imageInDir path) images
     }
