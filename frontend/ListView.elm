@@ -1,4 +1,4 @@
-module ListView (Model, init, Action(Prev,Next,NoOp), update, view) where
+module ListView (Model, initModel, Action(Prev,Next,NoOp), update, view) where
 
 import List
 import Html exposing (..)
@@ -6,56 +6,58 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Debug
 import Signal
+import Array exposing (Array)
 
-import ImageView
+import Struct exposing (Image)
 
 -- MODEL
 
 type alias Model = 
-  { previous: List String
-  , current: String
-  , next: List String
+  { content : Array Image
+  , current: Image
+  , position : Int
   }
 
-init : List String -> Model
-init images =
-  { previous = []
-  , current = Maybe.withDefault "" (List.head images)
-  , next = Maybe.withDefault [] (List.tail images)
+initModel : List Image -> Image -> Model
+initModel list current =
+  { content = Array.fromList list
+  , current = current
+  , position = getCurrentPosition list current
   }
+
+getCurrentPosition : List Image -> Image -> Int
+getCurrentPosition list current =
+  let
+    isCurrent (index, elm) = if elm == current then Just index else Nothing
+    remains = list
+      |> List.indexedMap (,)
+      |> List.filterMap isCurrent
+  in case List.head remains of
+    Just index -> index
+    Nothing -> 0
 
 
 -- UPDATE
 
-type Position = Start | Inside | End
-
-position : Model -> Position
-position model =
-  if List.isEmpty model.previous then Start else
-  if List.isEmpty model.next then End else
-  Inside
-
-
-type Action = Next | Prev | NoOp
+type Action = Next | Prev | Exit | NoOp
 
 update : Action -> Model -> Model
-update action model =
-    case (position model, action) of
-        (Start, Prev) -> model
-        (End, Next) -> model
-        (_, Next) ->
-          { previous = List.append model.previous [model.current]
-          , current = Maybe.withDefault "" (List.head model.next)
-          , next = Maybe.withDefault [] (List.tail model.next)
-          }
-        (_, Prev) ->
-          let start = (List.length model.previous) - 1
-          in
-          { previous = List.take start model.previous
-          , current = Maybe.withDefault "" (List.head (List.drop start model.previous))
-          , next = model.current :: model.next
-          }
-        (_, _) -> model
+update action model = case action of
+  Next -> let position = model.position + 1
+    in case Array.get position model.content of
+      Just elm -> { model |
+        position = position
+        , current = elm
+        }
+      Nothing -> model
+  Prev -> let position = model.position - 1
+    in case Array.get position model.content of
+      Just elm -> { model |
+        position = position
+        , current = elm
+        }
+      Nothing -> model
+  _ -> model
 
 -- VIEW
 
@@ -73,10 +75,10 @@ navButton cstyle address action =
     ]
     []
 
-view: Signal.Address Action -> (Int, Int) -> Model -> Html
-view address windowSize model =
+view: Signal.Address Action -> Model -> Html
+view address model =
   div []
-    [ ImageView.view windowSize model.current
+    [ img [ src model.current.path ] []
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
     ]
