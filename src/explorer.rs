@@ -1,4 +1,5 @@
 use std::fs;
+use std::path;
 use std::io::Result;
 
 struct WalkDir {
@@ -15,13 +16,20 @@ impl Iterator for WalkDir {
             // A new entry is found
             Some(Ok(entry)) => {
                 // If this entry is a directory, queue it for further walking
-                if entry.path().is_dir() {
-                    self.queue.push(entry);
+                let path = entry.path();
+                if path.is_dir() {
+                    if keep_dir(path) {
+                        self.queue.push(entry);
+                    }
                     self.next()
                 }
                 // Otherwise, return it
                 else {
-                    Some(entry)
+                    if keep_file(entry.path()) {
+                        Some(entry)
+                    } else {
+                        self.next()
+                    }
                 }
             }
             // An error was found with the following entry
@@ -51,6 +59,41 @@ fn walk_dir(path: &str) -> Result<WalkDir> {
     match fs::read_dir(path) {
         Ok(readdir) => Ok(WalkDir{ queue: vec![], current: readdir }),
         Err(e) => Err(e),
+    }
+}
+
+
+fn keep_dir(path: path::PathBuf) -> bool {
+    match path.file_name() {
+        Some(filename) => {
+            match filename.to_str() {
+                Some(name) => {
+                    if name.starts_with(".") {
+                        return false
+                    }
+                    true
+                },
+                None => false,
+            }
+        },
+        None => false,
+    }
+}
+
+fn keep_file(path: path::PathBuf) -> bool {
+    match path.file_name() {
+        Some(filename) => {
+            match filename.to_str() {
+                Some(name) => {
+                    if name.starts_with(".") {
+                        return false
+                    }
+                    true
+                },
+                None => false,
+            }
+        },
+        None => false,
     }
 }
 
