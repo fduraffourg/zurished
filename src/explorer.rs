@@ -2,6 +2,49 @@ use std::fs;
 use std::path;
 use std::io::Result;
 
+use media::{Media, path_to_media};
+
+struct Album {
+    albums: Vec<Album>,
+    medias: Vec<Media>,
+}
+
+fn get_album<P: AsRef<path::Path>>(path: P) -> Result<Album> {
+    let fscontent = try!(fs::read_dir(path))
+        .filter_map(|e| match e {
+            Ok(d) => Some(d),
+            Err(_) => None,
+        });
+
+    let (dirs, files): (Vec<fs::DirEntry>, Vec<fs::DirEntry>) = fscontent.partition(|e| e.path().is_dir());
+
+    let albums: Vec<Album> = dirs.into_iter()
+        .map(|de| get_album(de.path()))
+        .filter_map(|e| match e {
+            Ok(d) => Some(d),
+            Err(_) => None,
+        }).collect();
+
+    let medias: Vec<Media> = files.into_iter()
+        .map(|d| d.path())
+        .filter_map(path_to_media)
+        .collect();
+
+    Ok(Album {
+        albums: albums,
+        medias: medias,
+    })
+}
+
+#[test]
+fn test_get_album() {
+    let album = get_album("src/test").unwrap();
+
+    assert!(album.albums.len() == 1);
+    assert!(album.medias.len() == 2);
+}
+
+
 struct WalkDir {
     queue: Vec<fs::DirEntry>,
     current: fs::ReadDir,

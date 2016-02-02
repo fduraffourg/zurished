@@ -1,0 +1,9 @@
+[package]
+
+name = "zurished"
+version = "0.0.1"
+authors = [ "Florian Duraffourg <f.duraffourg@gmail.com>" ]
+
+[dependencies]
+image = "*"
+iron = "*"
