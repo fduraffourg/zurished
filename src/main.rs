@@ -1,10 +1,11 @@
 extern crate iron;
 extern crate image;
 extern crate router;
+extern crate rustc_serialize;
 
 use std::fs;
 use std::fs::{DirEntry};
-use std::path::Path;
+use std::path::PathBuf;
 
 mod media;
 mod explorer;
@@ -13,6 +14,8 @@ use iron::prelude::*;
 use iron::status;
 use router::Router;
 
+use rustc_serialize::json;
+
 
 fn index(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "index")))
@@ -20,7 +23,11 @@ fn index(_: &mut Request) -> IronResult<Response> {
 
 
 fn list_albums(_: &mut Request) -> IronResult<Response> {
-    Ok(Response::with((status::Ok, "albums")))
+    let path = PathBuf::from("src/test");
+    let albums = explorer::get_album(path).unwrap();
+    let payload = json::encode(&albums).unwrap();
+
+    Ok(Response::with((status::Ok, payload)))
 }
 
 

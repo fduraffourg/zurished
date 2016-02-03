@@ -5,8 +5,9 @@ use std::path;
 use image::GenericImage;
 
 
+#[derive(RustcEncodable)]
 pub struct Media {
-    path: path::PathBuf,
+    name: String,
     dimensions: (u32, u32),
 }
 
@@ -17,8 +18,16 @@ pub fn path_to_media(path: path::PathBuf) -> Option<Media> {
         Err(_) => return None,
     };
 
+    let name = match path.as_path()
+        .file_name()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_string()) {
+            Some(n) => n,
+            None => return None,
+        };
+
     Some(Media{
-        path: path.to_path_buf(),
+        name: name,
         dimensions: img.dimensions(),
     })
 }

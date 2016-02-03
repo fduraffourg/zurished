@@ -5,14 +5,19 @@ use std::io::Result;
 
 use media::{Media, path_to_media};
 
-struct Album {
-    // name: String,
+#[derive(RustcEncodable)]
+pub struct Album {
+    name: String,
     albums: Vec<Album>,
     medias: Vec<Media>,
 }
 
-fn get_album<P: AsRef<path::Path>>(path: P) -> Result<Album> {
-    let fscontent = try!(fs::read_dir(path))
+pub fn get_album(path: path::PathBuf) -> Option<Album> {
+    let readdir = match fs::read_dir(&path) {
+        Ok(r) => r,
+        Err(_) => return None,
+    };
+    let fscontent = readdir
         .filter_map(|e| match e {
             Ok(d) => Some(d),
             Err(_) => None,
@@ -22,10 +27,7 @@ fn get_album<P: AsRef<path::Path>>(path: P) -> Result<Album> {
 
     let albums: Vec<Album> = dirs.into_iter()
         .map(|de| get_album(de.path()))
-        .filter_map(|e| match e {
-            Ok(d) => Some(d),
-            Err(_) => None,
-        }).collect();
+        .filter_map(|e| e).collect();
 
     let medias: Vec<Media> = files.into_iter()
         .map(|d| d.path())
@@ -37,8 +39,16 @@ fn get_album<P: AsRef<path::Path>>(path: P) -> Result<Album> {
         // .and_then(|e| String::from_str(e))
         // .or(String::from_str(""));
 
-    Ok(Album {
-        // name: name,
+    let name = match path.as_path()
+        .file_name()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_string()) {
+            Some(n) => n,
+            None => return None,
+        };
+
+    Some(Album {
+        name: name,
         albums: albums,
         medias: medias,
     })
@@ -46,7 +56,7 @@ fn get_album<P: AsRef<path::Path>>(path: P) -> Result<Album> {
 
 #[test]
 fn test_get_album() {
-    let album = get_album("src/test").unwrap();
+    let album = get_album(path::PathBuf::from("src/test")).unwrap();
 
     // assert!(album.name == "test", album.name);
     assert!(album.albums.len() == 1);

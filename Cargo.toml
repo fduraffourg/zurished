@@ -8,3 +8,4 @@ authors = [ "Florian Duraffourg <f.duraffourg@gmail.com>" ]
 image = "*"
 iron = "*"
 router = "*"
+rustc-serialize = "*"
