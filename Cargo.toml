@@ -7,3 +7,4 @@ authors = [ "Florian Duraffourg <f.duraffourg@gmail.com>" ]
 [dependencies]
 image = "*"
 iron = "*"
+router = "*"
