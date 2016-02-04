@@ -27,7 +27,7 @@ struct AlbumsServer {
 }
 
 impl iron::middleware::Handler for AlbumsServer {
-    fn handle(&self, request: &mut Request) -> IronResult<Response> {
+    fn handle(&self, _: &mut Request) -> IronResult<Response> {
         let albums = explorer::get_album(&self.album).unwrap();
         let payload = json::encode(&albums).unwrap();
 
@@ -36,24 +36,18 @@ impl iron::middleware::Handler for AlbumsServer {
 }
 
 
-fn list_albums( _: &mut Request) -> IronResult<Response> {
-    let path = PathBuf::from(".");
-    let albums = explorer::get_album(&path).unwrap();
-    let payload = json::encode(&albums).unwrap();
-
-    Ok(Response::with((status::Ok, payload)))
-}
-
 fn start_web_server(address: &str, album: &str) {
     let path = PathBuf::from(album);
 
+    let mut router = Router::new();
+
+    // Serves albums content
     let webserver = AlbumsServer {
         album: path,
     };
-
-    let mut router = Router::new();
-
     router.get("/albums", webserver);
+
+    // Serves index page
     router.get("/", index);
 
     Iron::new(router).http(address).unwrap();
