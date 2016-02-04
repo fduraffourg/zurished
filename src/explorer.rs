@@ -10,8 +10,8 @@ pub struct Album {
     medias: Vec<Media>,
 }
 
-pub fn get_album(path: path::PathBuf) -> Option<Album> {
-    let readdir = match fs::read_dir(&path) {
+pub fn get_album(path: &path::PathBuf) -> Option<Album> {
+    let readdir = match fs::read_dir(path) {
         Ok(r) => r,
         Err(_) => return None,
     };
@@ -24,7 +24,7 @@ pub fn get_album(path: path::PathBuf) -> Option<Album> {
     let (dirs, files): (Vec<fs::DirEntry>, Vec<fs::DirEntry>) = fscontent.partition(|e| e.path().is_dir());
 
     let albums: Vec<Album> = dirs.into_iter()
-        .map(|de| get_album(de.path()))
+        .map(|de| get_album(&de.path()))
         .filter_map(|e| e).collect();
 
     let medias: Vec<Media> = files.into_iter()

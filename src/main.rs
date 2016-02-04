@@ -22,21 +22,39 @@ fn index(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "index")))
 }
 
+struct AlbumsServer {
+    album: PathBuf,
+}
 
-fn list_albums(_: &mut Request) -> IronResult<Response> {
-    let path = PathBuf::from("src/test");
-    let albums = explorer::get_album(path).unwrap();
+impl iron::middleware::Handler for AlbumsServer {
+    fn handle(&self, request: &mut Request) -> IronResult<Response> {
+        let albums = explorer::get_album(&self.album).unwrap();
+        let payload = json::encode(&albums).unwrap();
+
+        Ok(Response::with((status::Ok, payload)))
+    }
+}
+
+
+fn list_albums( _: &mut Request) -> IronResult<Response> {
+    let path = PathBuf::from(".");
+    let albums = explorer::get_album(&path).unwrap();
     let payload = json::encode(&albums).unwrap();
 
     Ok(Response::with((status::Ok, payload)))
 }
 
-fn start_web_server(address: &str) {
+fn start_web_server(address: &str, album: &str) {
+    let path = PathBuf::from(album);
+
+    let webserver = AlbumsServer {
+        album: path,
+    };
+
     let mut router = Router::new();
 
-    router.get("/albums", list_albums);
+    router.get("/albums", webserver);
     router.get("/", index);
-
 
     Iron::new(router).http(address).unwrap();
 }
@@ -75,6 +93,6 @@ fn main() {
 
     println!("Port: {}\nAlbum: {}\nCache: {}\n", address, album, cache);
 
-    start_web_server(address);
+    start_web_server(address, album);
 
 }
