@@ -1,7 +1,5 @@
 use std::fs;
 use std::path;
-use std::io::Result;
-// use std::string::String;
 
 use media::{Media, path_to_media};
 

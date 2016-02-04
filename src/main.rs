@@ -3,8 +3,6 @@ extern crate image;
 extern crate router;
 extern crate rustc_serialize;
 
-use std::fs;
-use std::fs::{DirEntry};
 use std::path::PathBuf;
 
 mod media;
