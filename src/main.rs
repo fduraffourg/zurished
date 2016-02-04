@@ -22,11 +22,15 @@ fn index(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "index")))
 }
 
-struct AlbumsServer {
+/*
+ * AlbumsHandler
+ */
+
+struct AlbumsHandler {
     album: PathBuf,
 }
 
-impl iron::middleware::Handler for AlbumsServer {
+impl iron::middleware::Handler for AlbumsHandler {
     fn handle(&self, _: &mut Request) -> IronResult<Response> {
         let albums = explorer::get_album(&self.album).unwrap();
         let payload = json::encode(&albums).unwrap();
@@ -35,17 +39,62 @@ impl iron::middleware::Handler for AlbumsServer {
     }
 }
 
+/*
+ * MediasHandler
+ */
 
-fn start_web_server(address: &str, album: &str) {
+struct MediasHandler {
+    album: PathBuf,
+    cache: PathBuf,
+}
+
+impl iron::middleware::Handler for MediasHandler {
+    fn handle(&self, request: &mut Request) -> IronResult<Response> {
+        let mut path_iter = request.url.path.clone().into_iter();
+
+        // First part should be medias, just skip it
+        if let None = path_iter.next() {
+            return Ok(Response::with((status::BadRequest, "Request too short")))
+        }
+
+        // Second part should be the size of the media
+        let size = match path_iter.next() {
+            Some(string) => string,
+            None => return Ok(Response::with((status::BadRequest, "Request too short"))),
+        };
+
+        // The rest is the path of the media
+
+        Ok(Response::with((status::Ok, "OK for serving medias")))
+    }
+}
+
+impl MediasHandler {
+    fn new(album_path: &str, cache_path: &str) -> MediasHandler {
+        let album = PathBuf::from(album_path);
+        let cache = PathBuf::from(cache_path);
+        MediasHandler {
+            album: album,
+            cache: cache,
+        }
+    }
+}
+
+
+fn start_web_server(address: &str, album: &str, cache: &str) {
     let path = PathBuf::from(album);
 
     let mut router = Router::new();
 
     // Serves albums content
-    let webserver = AlbumsServer {
+    let albums_handler = AlbumsHandler {
         album: path,
     };
-    router.get("/albums", webserver);
+    router.get("/albums", albums_handler);
+
+    // Serves media content
+    let media_handler = MediasHandler::new(album, cache);
+    router.get("/medias/*", media_handler);
 
     // Serves index page
     router.get("/", index);
@@ -87,6 +136,6 @@ fn main() {
 
     println!("Port: {}\nAlbum: {}\nCache: {}\n", address, album, cache);
 
-    start_web_server(address, album);
+    start_web_server(address, album, cache);
 
 }
