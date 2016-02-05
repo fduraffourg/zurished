@@ -1,8 +1,11 @@
 extern crate image;
 
 use std::path;
+use std::io::Write;
 
 use image::GenericImage;
+use image::FilterType;
+use image::ImageFormat;
 
 
 #[derive(RustcEncodable)]
@@ -52,4 +55,20 @@ fn test_path_to_media_3() {
     let media = path_to_media(path::Path::new("src/test/2016/3.jpeg").to_path_buf()).unwrap();
 
     assert!(media.dimensions == (225, 225));
+}
+
+
+pub fn resize_media<W: Write>(path: path::PathBuf, width: u32, writer: &mut W) {
+    let image = match image::open(&path) {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+
+    let (owidth, oheight) = image.dimensions();
+
+    let height = width * oheight / owidth;
+
+    let resized = image.resize(width, height, FilterType::Triangle);
+
+    resized.save(writer, ImageFormat::JPEG);
 }
