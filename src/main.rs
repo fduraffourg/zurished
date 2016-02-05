@@ -11,6 +11,7 @@ mod explorer;
 
 use iron::prelude::*;
 use iron::status;
+use iron::response;
 use router::Router;
 
 use rustc_serialize::json;
@@ -52,7 +53,7 @@ impl iron::middleware::Handler for MediasHandler {
     fn handle(&self, request: &mut Request) -> IronResult<Response> {
         let mut path_iter = request.url.path.clone().into_iter();
 
-        // First part should be medias, just skip it
+        // First part should be 'medias', just skip it
         if let None = path_iter.next() {
             return Ok(Response::with((status::BadRequest, "Request too short")))
         }
@@ -62,10 +63,26 @@ impl iron::middleware::Handler for MediasHandler {
             Some(string) => string,
             None => return Ok(Response::with((status::BadRequest, "Request too short"))),
         };
+        let size = match size.parse::<u32>() {
+            Ok(i) => i,
+            Err(_) => return Ok(Response::with((status::BadRequest, "Bad size, unable to parse it to an integer"))),
+        };
+
 
         // The rest is the path of the media
+        let source = path_iter.fold(String::new(), |s, x| if s.len() == 0 { x } else { s + "/" + &x });
+        let source = PathBuf::from(source);
+        let source = self.album.join(source);
 
-        Ok(Response::with((status::Ok, "OK for serving medias")))
+
+        // Create the response
+        // let response_body = iron::response::ResponseBody::new();
+        // let response = Response::with((status::Ok, response_body));
+
+        // let image = media::resize_media(source, size, response_body);
+
+        //Ok(response)
+        Ok(Response::with((status::Ok, "Serving media")))
     }
 }
 
