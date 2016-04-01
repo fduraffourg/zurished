@@ -5,12 +5,16 @@ import os
 import asyncio
 from album import Album
 
-RESIZES=[
-    # (width, height, square)
-    (200, 200, True),
-    (1024, 768, False),
-    (1920, 1080, False),
+THUMBNAIL = (200, 200)
+RESIZES = [
+    # (width, height)
+    (1024, 768),
+    (1920, 1080),
     ]
+
+
+def prepare_cache_directory(path):
+    pass
 
 
 def serve_static_file(path):
@@ -25,6 +29,19 @@ class Gallery(object):
         self.rootdir = rootdir
         self.cachedir = cachedir
         self.rootalbum = Album("", rootdir)
+
+    def list_all_medias(self):
+        medias = []
+        queue = [ self.rootalbum ]
+        while len(queue) > 0:
+            album = queue.pop()
+
+            for new_album in album.albums:
+                queue.append(new_album)
+
+            for media in album.medias:
+                medias.append(media.to_dict())
+        return medias
 
     def to_json(self):
         def fallback_to_dict(obj):
@@ -43,7 +60,12 @@ class Gallery(object):
                 }
 
     async def web_gallery_handler(self, request):
-        return web.Response(body=self.to_json().encode('utf-8'))
+        result = {
+            "sizes": RESIZES,
+            "images": self.list_all_medias()
+            }
+        dump = json.dumps(result)
+        return web.Response(body=dump.encode('utf-8'))
 
     @asyncio.coroutine
     def web_resize_handler(self, request):

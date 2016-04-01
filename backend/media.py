@@ -30,4 +30,5 @@ class Media(object):
                 'name': self.name,
                 'width': self.width,
                 'height': self.height,
+                'path': os.path.join(self.album.path, self.name),
                 }
