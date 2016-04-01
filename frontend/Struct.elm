@@ -1,16 +1,18 @@
 module Struct (TopContent, emptyTopContent, Image, Folder, topContentDecoder, topFolders, imageInSubDirs, imageInDir, listFolders, pathMerge, pathRelative, normPath) where
 
-import Json.Decode as Json exposing ((:=), Decoder, string, list)
+import Json.Decode as Json exposing ((:=), Decoder, tuple2, int, string, list)
 import String
 import List
 
 type alias TopContent =
-  { sizes : List String
+  { sizes : List (Int, Int)
   , images : List Image
   }
 
 type alias Image =
   { path : String
+  , width: Int
+  , height: Int
   }
 
 type alias Folder =
@@ -27,12 +29,14 @@ emptyTopContent =
 
 topContentDecoder : Decoder TopContent
 topContentDecoder = Json.object2 TopContent
-  ("sizes" := list string)
+  ("sizes" := list (tuple2 (,) int int))
   ("images" := list imageDecoder)
 
 imageDecoder : Decoder Image
-imageDecoder = Json.object1 Image
-  ("name" :=  string)
+imageDecoder = Json.object3 Image
+  ("path" :=  string)
+  ("width" := int)
+  ("height" := int)
 
 
 -- Usefull functions on image list
