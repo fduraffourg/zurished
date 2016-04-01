@@ -2,6 +2,7 @@ import argparse
 from aiohttp import web
 import json
 import os
+import asyncio
 from album import Album
 
 RESIZES=[
@@ -10,6 +11,14 @@ RESIZES=[
     (1024, 768, False),
     (1920, 1080, False),
     ]
+
+
+def serve_static_file(path):
+    BUFSIZE=1024
+    with open(path, "rb") as fo:
+        response = web.StreamResponse()
+        return web.Response(body=fo.read())
+
 
 class Gallery(object):
     def __init__(self, rootdir, cachedir):
@@ -36,19 +45,51 @@ class Gallery(object):
     async def web_gallery_handler(self, request):
         return web.Response(body=self.to_json().encode('utf-8'))
 
-    async def web_resize_handler(self, request):
+    @asyncio.coroutine
+    def web_resize_handler(self, request):
         width = request.match_info['width']
         height = request.match_info['height']
         path = request.match_info['path']
 
+        # Verify that the given size is correct
+        try:
+            size = (int(width), int(height))
+        except ValueError:
+            return web.Response(body="Bad dimensions for resising".encode('utf-8'))
+
+        square = None
+        for w, h, s in RESIZES:
+            if size == (w, h):
+                square = s
+                break
+        if square is None:
+            return web.Response(body="Bad dimensions for resising".encode('utf-8'))
+
+
+        # Build paths of the image and of the cache
         cache_path = os.path.join(self.cachedir,
                 "resized/%sx%s" % (width, height),
                 path)
         media_path = os.path.join(self.rootdir, path)
 
-        response = "Request thumb (%s, %s) for %s" % (width, height, path)
-        return web.Response(body=response.encode('utf-8'))
+        # If the image is already on the cache, send it
+        if os.path.isfile(cache_path):
+            print("Serve from cache (%s)" % cache_path)
+            return serve_static_file(cache_path)
 
+        # Otherwise, need to create the cache file
+        command = "convert %s -resize %sx%s %s" % (
+                media_path,
+                width,
+                height,
+                cache_path)
+        create_process = asyncio.create_subprocess_shell(command)
+        process = yield from create_process
+        return_code = yield from process.wait()
+        if return_code == 0:
+            return serve_static_file(cache_path)
+        else:
+            return web.Response(body="Error when resizing the media".encode('utf-8'))
 
 
 def main():
