@@ -130,7 +130,7 @@ def main():
     # Run the webserver
     app = web.Application()
     app.router.add_route('GET', '/gallery', gallery.web_gallery_handler)
-    app.router.add_route('GET', '/resize/{width}/{height}/{path:.*}', gallery.web_resize_handler)
+    app.router.add_route('GET', '/resized/{width}x{height}/{path:.*}', gallery.web_resize_handler)
     web.run_app(app)
 
 if __name__ == '__main__':
