@@ -101,7 +101,7 @@ getImageSize image (winw, winh) =
   let
     natural = (toFloat image.width, toFloat image.height)
     wcons = (toFloat winw, (toFloat winw) * (toFloat image.height) / (toFloat image.width))
-    hcons = ((toFloat image.height) * (toFloat winw) / (toFloat winh), toFloat winh)
+    hcons = ((toFloat winh) * (toFloat image.width) / (toFloat image.height), toFloat winh)
     (fwidth, fheight) = Basics.min natural (Basics.min wcons hcons)
   in
     (round fwidth, round fheight)
