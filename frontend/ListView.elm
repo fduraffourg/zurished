@@ -107,8 +107,13 @@ view address model =
     (boxw, boxh) = model.resizeBox
     path = "/medias/resized/" ++ (toString boxw) ++ "x" ++ (toString boxh) ++ "/" ++ model.current.path
     (imgw, imgh) = getImageSize model.current model.window
+    (winw, _) = model.window
+    left = round (toFloat (winw - imgw) / 2)
   in div []
-    [ img [ src path, width imgw, height imgh ] []
+    [ img [ src path
+          , width imgw
+          , height imgh
+          , style [("margin-left", (toString left) ++ "px")]] []
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
     , exitButton address
