@@ -79,12 +79,7 @@ class Gallery(object):
         except ValueError:
             return web.Response(body="Bad dimensions for resising".encode('utf-8'))
 
-        square = None
-        for w, h, s in RESIZES:
-            if size == (w, h):
-                square = s
-                break
-        if square is None:
+        if size not in RESIZES:
             return web.Response(body="Bad dimensions for resising".encode('utf-8'))
 
 
