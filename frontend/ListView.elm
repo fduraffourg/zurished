@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Debug
 import Signal
 import Array exposing (Array)
+import Basics exposing (round, toFloat, min)
 
 import Struct exposing (Image)
 
@@ -16,13 +17,15 @@ type alias Model =
   { content : Array Image
   , current: Image
   , position : Int
+  , window : (Int, Int)
   }
 
-initModel : List Image -> Image -> Model
-initModel list current =
+initModel : List Image -> Image -> (Int, Int) -> Model
+initModel list current window =
   { content = Array.fromList list
   , current = current
   , position = getCurrentPosition list current
+  , window = window
   }
 
 getCurrentPosition : List Image -> Image -> Int
@@ -39,7 +42,7 @@ getCurrentPosition list current =
 
 -- UPDATE
 
-type Action = Next | Prev | Exit | NoOp
+type Action = Next | Prev | Exit | WindowSize (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model = case action of
@@ -77,9 +80,24 @@ navButton cstyle address action =
 
 view: Signal.Address Action -> Model -> Html
 view address model =
-  let path = "/medias/full/" ++ model.current.path
+  let
+    path = "/medias/full/" ++ model.current.path
+    (imgw, imgh) = getImageSize model.current model.window
   in div []
-    [ img [ src path ] []
+    [ img [ src path, width imgw, height imgh ] []
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
     ]
+
+
+-- UTILS
+
+getImageSize : Image -> (Int, Int) -> (Int, Int)
+getImageSize image (winw, winh) =
+  let
+    natural = (toFloat image.width, toFloat image.height)
+    wcons = (toFloat winw, (toFloat winw) * (toFloat image.height) / (toFloat image.width))
+    hcons = ((toFloat image.height) * (toFloat winw) / (toFloat winh), toFloat winh)
+    (fwidth, fheight) = Basics.min natural (Basics.min wcons hcons)
+  in
+    (round fwidth, round fheight)

@@ -19,12 +19,16 @@ type alias Model =
   { path : String
   , content : Struct.TopContent
   , currentView : View
+  , window : (Int, Int)
   }
 
 type View = ExplorerView | ImageView ListView.Model
 
 initModel : Model
-initModel = { path = "", content = Struct.emptyTopContent, currentView = ExplorerView }
+initModel = { path = ""
+  , content = Struct.emptyTopContent
+  , currentView = ExplorerView
+  , window = (800, 600) }
 
 
 
@@ -41,7 +45,7 @@ update action model  =
     ChangePath path -> { model | path = path }
     ViewImages list current ->
       { model |
-        currentView = ImageView (ListView.initModel list current) }
+        currentView = ImageView (ListView.initModel list current model.window ) }
     ForwardViewer lvaction ->
       case model.currentView of
         ImageView lvmodel -> { model |
