@@ -81,6 +81,20 @@ navButton cstyle address action =
     ]
     []
 
+exitButton : Signal.Address Action -> Html
+exitButton address =
+  div [ style
+        [ ("position", "absolute")
+        , ("width", "80px")
+        , ("height", "80px")
+        , ("top", "0px")
+        , ("right", "0px")
+        , ("background-color", "gray")
+        ]
+      , onClick address Exit]
+      []
+
+
 view: Signal.Address Action -> Model -> Html
 view address model =
   let
@@ -90,8 +104,7 @@ view address model =
     [ img [ src path, width imgw, height imgh ] []
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
-    , div [ style [ ("position", "absolute"), ("width", "80px"), ("height", "80px"), ("top", "0px"), ("right", "0px"), ("background-color", "gray")]
-    , onClick address Exit] []
+    , exitButton address
     ]
 
 
