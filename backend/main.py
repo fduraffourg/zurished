@@ -14,7 +14,15 @@ RESIZES = [
 
 
 def prepare_cache_directory(path):
-    pass
+    dir = os.path.dirname(path)
+    if os.path.isdir(dir):
+        return True
+
+    try:
+        os.makedirs(dir, exist_ok=True)
+        return True
+    except OSError:
+        return False
 
 
 def serve_static_file(path):
@@ -88,6 +96,11 @@ class Gallery(object):
                 "resized/%sx%s" % (width, height),
                 path)
         media_path = os.path.join(self.rootdir, path)
+
+        # Create the cache directory if necessary
+        if not prepare_cache_directory(cache_path):
+            return web.Response(body="Unable to create cache directory".encode('utf-8'))
+
 
         # If the image is already on the cache, send it
         if os.path.isfile(cache_path):
