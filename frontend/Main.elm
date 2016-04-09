@@ -36,7 +36,7 @@ initModel = { path = ""
 
 mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | NoOp
+type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | NoOp
 
 update : Action -> Model -> Model
 update action model  =
@@ -51,6 +51,7 @@ update action model  =
         ImageView lvmodel -> { model |
           currentView = ImageView (ListView.update lvaction lvmodel) }
         _ -> model
+    ExitListView -> { model | currentView = ExplorerView }
     NoOp -> model
 
 
@@ -86,7 +87,10 @@ signalExplorerToMain action = case action of
 viewerAddress = Signal.forwardTo mb.address signalViewerToMain
 
 signalViewerToMain : ListView.Action -> Action
-signalViewerToMain action = ForwardViewer action
+signalViewerToMain action =
+  case action of
+      ListView.Exit -> ExitListView
+      _ -> ForwardViewer action
 
 
 -- Retrieve content from server
