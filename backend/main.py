@@ -128,6 +128,8 @@ def main():
             help="Root directory of the photo gallery")
     parser.add_argument('-c', '--cache', type=str, default="/var/cache/zurished",
             help="Cache folder to use")
+    parser.add_argument('-s', '--static', type=str, default="",
+            help="Static content to serve")
     args = parser.parse_args()
 
 
@@ -138,7 +140,9 @@ def main():
     # Run the webserver
     app = web.Application()
     app.router.add_route('GET', '/gallery', gallery.web_gallery_handler)
-    app.router.add_route('GET', '/resized/{width}x{height}/{path:.*}', gallery.web_resize_handler)
+    app.router.add_route('GET', '/medias/resized/{width}x{height}/{path:.*}', gallery.web_resize_handler)
+    app.router.add_static('/medias/full/', args.root)
+    app.router.add_static('/', args.static)
     web.run_app(app)
 
 if __name__ == '__main__':
