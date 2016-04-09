@@ -96,7 +96,7 @@ signalHttpToMain content = UpdateContent content
 port fetchString : Task.Task Http.Error ()
 port fetchString = Task.andThen
   (Task.onError
-    (Http.get Struct.topContentDecoder "albums.json")
+    (Http.get Struct.topContentDecoder "gallery")
     (\msg -> Task.fail (Debug.log "Http.get error:" msg)))
   (Signal.send httpAddress)
 

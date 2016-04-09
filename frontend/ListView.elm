@@ -77,8 +77,9 @@ navButton cstyle address action =
 
 view: Signal.Address Action -> Model -> Html
 view address model =
-  div []
-    [ img [ src model.current.path ] []
+  let path = "/medias/full/" ++ model.current.path
+  in div []
+    [ img [ src path ] []
     , navButton [("left", "0px")] address Prev
     , navButton [("right", "0px")] address Next
     ]
