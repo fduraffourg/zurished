@@ -18,14 +18,18 @@ type alias Model =
   , current: Image
   , position : Int
   , window : (Int, Int)
+  , resizeBoxes : List (Int, Int)
+  , resizeBox : (Int, Int)
   }
 
-initModel : List Image -> Image -> (Int, Int) -> Model
-initModel list current window =
+initModel : List Image -> Image -> List (Int, Int) -> (Int, Int) -> Model
+initModel list current resizeBoxes window =
   { content = Array.fromList list
   , current = current
   , position = getCurrentPosition list current
   , window = window
+  , resizeBoxes = resizeBoxes
+  , resizeBox = chooseResizeBox resizeBoxes window
   }
 
 getCurrentPosition : List Image -> Image -> Int
@@ -62,7 +66,9 @@ update action model = case action of
         , current = elm
         }
       Nothing -> model
-  ChangeWindowSize window -> { model | window = window }
+  ChangeWindowSize window ->
+      { model | window = window
+                , resizeBox = chooseResizeBox model.resizeBoxes window}
   _ -> model
 
 -- VIEW
@@ -98,7 +104,8 @@ exitButton address =
 view: Signal.Address Action -> Model -> Html
 view address model =
   let
-    path = "/medias/full/" ++ model.current.path
+    (boxw, boxh) = model.resizeBox
+    path = "/medias/resized/" ++ (toString boxw) ++ "x" ++ (toString boxh) ++ "/" ++ model.current.path
     (imgw, imgh) = getImageSize model.current model.window
   in div []
     [ img [ src path, width imgw, height imgh ] []
@@ -119,3 +126,14 @@ getImageSize image (winw, winh) =
     (fwidth, fheight) = Basics.min natural (Basics.min wcons hcons)
   in
     (round fwidth, round fheight)
+
+chooseResizeBox : List (Int, Int) -> (Int, Int) -> (Int, Int)
+chooseResizeBox sizes (winw, winh) =
+  let
+    keepSmaller (w, h) = if w > winw && h > winh then False else True
+    smallers = List.filter keepSmaller sizes
+  in case List.maximum smallers of
+    Just size -> size
+    Nothing -> case List.head sizes of
+        Just size -> size
+        Nothing -> Debug.log "Scress is to small" (0, 0)

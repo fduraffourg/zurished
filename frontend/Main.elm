@@ -23,6 +23,7 @@ type alias Model =
   , content : Struct.TopContent
   , currentView : View
   , window : (Int, Int)
+  , resizeBoxes : List (Int, Int)
   }
 
 type View = ExplorerView | ImageView ListView.Model
@@ -31,7 +32,9 @@ initModel : Model
 initModel = { path = ""
   , content = Struct.emptyTopContent
   , currentView = ExplorerView
-  , window = (800, 600) }
+  , window = (800, 600)
+  , resizeBoxes = []
+  }
 
 
 
@@ -44,11 +47,11 @@ type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (
 update : Action -> Model -> Model
 update action model  =
   case action of
-    UpdateContent content -> { model | content = content }
+    UpdateContent content -> { model | content = content, resizeBoxes = content.sizes }
     ChangePath path -> { model | path = path }
     ViewImages list current ->
       { model |
-        currentView = ImageView (ListView.initModel list current model.window ) }
+        currentView = ImageView (ListView.initModel list current model.resizeBoxes model.window ) }
     ForwardViewer lvaction ->
       case model.currentView of
         ImageView lvmodel -> { model |
