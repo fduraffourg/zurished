@@ -30,7 +30,7 @@ class Album(object):
                 medias.append(media)
 
         self._albums = albums
-        self._medias = medias
+        self._medias = sorted(medias, key=lambda m: m.name)
 
     @property
     def albums(self):
