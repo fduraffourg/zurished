@@ -40,9 +40,11 @@ getCurrentPosition list current =
     Nothing -> 0
 
 
+
+
 -- UPDATE
 
-type Action = Next | Prev | Exit | WindowSize (Int, Int) | NoOp
+type Action = Next | Prev | Exit | NoOp
 
 update : Action -> Model -> Model
 update action model = case action of
