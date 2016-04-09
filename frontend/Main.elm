@@ -7,11 +7,16 @@ import Debug
 import FolderView
 import ListView
 import Window
+import Keyboard
 
 main : Signal Html
 main = Signal.map view
   (Signal.foldp update initModel
-    (Signal.merge mb.signal windowSignal)
+    (Signal.mergeMany
+        [ mb.signal
+        , windowSignal
+        , keyboardSignal
+        ])
   )
 
 
@@ -42,7 +47,7 @@ initModel = { path = ""
 
 mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | ChangeWindowSize (Int, Int) | NoOp
+type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | ChangeWindowSize (Int, Int) | ArrowPress (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model  =
@@ -62,6 +67,13 @@ update action model  =
       case model.currentView of
         ImageView lvmodel -> { model |
           currentView = ImageView (ListView.update (ListView.ChangeWindowSize dimensions) lvmodel) }
+        _ -> model
+    ArrowPress dir -> case model.currentView of
+        ImageView lvmodel -> case dir of
+            (0,-1) -> update (ForwardViewer ListView.Next) model
+            (0, 1) -> update (ForwardViewer ListView.Prev) model
+            (-1, 0) -> update ExitListView model
+            _ -> model
         _ -> model
     NoOp -> model
 
@@ -124,3 +136,10 @@ port fetchString = Task.andThen
 windowSignal = Signal.map signalWindowToMain Window.dimensions
 
 signalWindowToMain dimensions = ChangeWindowSize dimensions
+
+
+-- Handle Keyboard
+
+keyboardSignal = Signal.map signalKeyboardToMain Keyboard.arrows
+
+signalKeyboardToMain dir = ArrowPress (dir.x, dir.y)
