@@ -47,7 +47,14 @@ initModel = { path = ""
 
 mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | ChangeWindowSize (Int, Int) | ArrowPress (Int, Int) | NoOp
+type Action = UpdateContent Struct.TopContent
+    | ChangePath String
+    | ViewImages (List Struct.Image) Struct.Image
+    | ForwardViewer ListView.Action
+    | ExitListView
+    | ChangeWindowSize (Int, Int)
+    | ArrowPress (Int, Int)
+    | NoOp
 
 update : Action -> Model -> Model
 update action model  =
