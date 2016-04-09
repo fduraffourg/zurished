@@ -108,7 +108,7 @@ class Gallery(object):
             return serve_static_file(cache_path)
 
         # Otherwise, need to create the cache file
-        command = "convert %s -resize %sx%s %s" % (
+        command = "convert '%s' -resize %sx%s '%s'" % (
                 media_path,
                 width,
                 height,
