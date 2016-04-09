@@ -130,6 +130,8 @@ def main():
             help="Cache folder to use")
     parser.add_argument('-s', '--static', type=str, default="",
             help="Static content to serve")
+    parser.add_argument('-p', '--port', type=int, default=8080,
+            help="Port to listen to")
     args = parser.parse_args()
 
 
@@ -143,7 +145,7 @@ def main():
     app.router.add_route('GET', '/medias/resized/{width}x{height}/{path:.*}', gallery.web_resize_handler)
     app.router.add_static('/medias/full/', args.root)
     app.router.add_static('/', args.static)
-    web.run_app(app)
+    web.run_app(app, port=args.port)
 
 if __name__ == '__main__':
     main()
