@@ -6,10 +6,13 @@ import Struct
 import Debug
 import FolderView
 import ListView
+import Window
 
 main : Signal Html
 main = Signal.map view
-  (Signal.foldp update initModel mb.signal)
+  (Signal.foldp update initModel
+    (Signal.merge mb.signal windowSignal)
+  )
 
 
 
@@ -36,7 +39,7 @@ initModel = { path = ""
 
 mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | NoOp
+type Action = UpdateContent Struct.TopContent | ChangePath String | ViewImages (List Struct.Image) Struct.Image | ForwardViewer ListView.Action | ExitListView | ChangeWindowSize (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model  =
@@ -52,6 +55,11 @@ update action model  =
           currentView = ImageView (ListView.update lvaction lvmodel) }
         _ -> model
     ExitListView -> { model | currentView = ExplorerView }
+    ChangeWindowSize dimensions ->
+      case model.currentView of
+        ImageView lvmodel -> { model |
+          currentView = ImageView (ListView.update (ListView.ChangeWindowSize dimensions) lvmodel) }
+        _ -> model
     NoOp -> model
 
 
@@ -108,3 +116,8 @@ port fetchString = Task.andThen
     (\msg -> Task.fail (Debug.log "Http.get error:" msg)))
   (Signal.send httpAddress)
 
+-- Get window size
+
+windowSignal = Signal.map signalWindowToMain Window.dimensions
+
+signalWindowToMain dimensions = ChangeWindowSize dimensions

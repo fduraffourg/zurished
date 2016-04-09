@@ -1,4 +1,4 @@
-module ListView (Model, initModel, Action(Prev,Next,Exit,NoOp), update, view) where
+module ListView (Model, initModel, Action(Prev,Next,Exit,ChangeWindowSize,NoOp), update, view) where
 
 import List
 import Html exposing (..)
@@ -44,7 +44,7 @@ getCurrentPosition list current =
 
 -- UPDATE
 
-type Action = Next | Prev | Exit | NoOp
+type Action = Next | Prev | Exit | ChangeWindowSize (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model = case action of
@@ -62,6 +62,7 @@ update action model = case action of
         , current = elm
         }
       Nothing -> model
+  ChangeWindowSize window -> { model | window = window }
   _ -> model
 
 -- VIEW
