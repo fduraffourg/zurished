@@ -3,7 +3,7 @@ from aiohttp import web
 import json
 import os
 import asyncio
-from album import Album
+from zurished.album import Album
 
 THUMBNAIL = (200, 200)
 RESIZES = [

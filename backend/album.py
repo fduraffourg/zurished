@@ -1,6 +1,6 @@
 import os
 
-from media import Media
+from zurished.media import Media
 
 class Album(object):
     def __init__(self, path, rootdir):
