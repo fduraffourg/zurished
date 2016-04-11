@@ -20,16 +20,21 @@ type alias Model =
   , window : (Int, Int)
   , resizeBoxes : List (Int, Int)
   , resizeBox : (Int, Int)
+  , currentUrl : String
   }
 
 initModel : List Image -> Image -> List (Int, Int) -> (Int, Int) -> Model
 initModel list current resizeBoxes window =
+  let
+      resizeBox = chooseResizeBox resizeBoxes window
+  in
   { content = Array.fromList list
   , current = current
   , position = getCurrentPosition list current
   , window = window
   , resizeBoxes = resizeBoxes
-  , resizeBox = chooseResizeBox resizeBoxes window
+  , resizeBox = resizeBox
+  , currentUrl = getUrl resizeBox current
   }
 
 getCurrentPosition : List Image -> Image -> Int
@@ -57,6 +62,7 @@ update action model = case action of
       Just elm -> { model |
         position = position
         , current = elm
+        , currentUrl = getUrl model.resizeBox elm
         }
       Nothing -> model
   Prev -> let position = model.position - 1
@@ -64,6 +70,7 @@ update action model = case action of
       Just elm -> { model |
         position = position
         , current = elm
+        , currentUrl = getUrl model.resizeBox elm
         }
       Nothing -> model
   ChangeWindowSize window ->
@@ -105,12 +112,11 @@ view: Signal.Address Action -> Model -> Html
 view address model =
   let
     (boxw, boxh) = model.resizeBox
-    path = "/medias/resized/" ++ (toString boxw) ++ "x" ++ (toString boxh) ++ "/" ++ model.current.path
     (imgw, imgh) = getImageSize model.current model.window
     (winw, _) = model.window
     left = round (toFloat (winw - imgw) / 2)
   in div []
-    [ img [ src path
+    [ img [ src model.currentUrl
           , width imgw
           , height imgh
           , style [("margin-left", (toString left) ++ "px")]] []
@@ -135,10 +141,14 @@ getImageSize image (winw, winh) =
 chooseResizeBox : List (Int, Int) -> (Int, Int) -> (Int, Int)
 chooseResizeBox sizes (winw, winh) =
   let
-    keepSmaller (w, h) = if w > winw && h > winh then False else True
+    keepSmaller (w, h) = if w > winw || h > winh then False else True
     smallers = List.filter keepSmaller sizes
   in case List.maximum smallers of
     Just size -> size
     Nothing -> case List.head sizes of
         Just size -> size
         Nothing -> Debug.log "Scress is to small" (0, 0)
+
+getUrl : (Int, Int) -> Image -> String
+getUrl (boxw, boxh) image =
+    "/medias/resized/" ++ (toString boxw) ++ "x" ++ (toString boxh) ++ "/" ++ image.path
