@@ -8,6 +8,7 @@ from album import Album
 THUMBNAIL = (200, 200)
 RESIZES = [
     # (width, height)
+    (800, 600),
     (1024, 768),
     (1920, 1080),
     ]
