@@ -33,10 +33,15 @@ def serve_static_file(path):
 
 
 class Gallery(object):
-    def __init__(self, rootdir, cachedir):
+    def __init__(self, rootdir, cachedir, resize_cmd=""):
         self.rootdir = rootdir
         self.cachedir = cachedir
         self.rootalbum = Album("", rootdir)
+
+        if resize_cmd != "":
+            self.resize_cmd = resize_cmd
+        else:
+            self.resize_cmd = "convert '{src}' -resize {width}x{height} '{dst}'"
 
     def list_all_medias(self):
         medias = []
@@ -108,11 +113,12 @@ class Gallery(object):
             return serve_static_file(cache_path)
 
         # Otherwise, need to create the cache file
-        command = "convert '%s' -resize %sx%s '%s'" % (
-                media_path,
-                width,
-                height,
-                cache_path)
+        command = self.resize_cmd.format(
+                src=media_path,
+                dst=cache_path,
+                width=width,
+                height=height,
+                )
         create_process = asyncio.create_subprocess_shell(command)
         process = yield from create_process
         return_code = yield from process.wait()
@@ -132,11 +138,14 @@ def main():
             help="Static content to serve")
     parser.add_argument('-p', '--port', type=int, default=8080,
             help="Port to listen to")
+    parser.add_argument('--resize-cmd', type=str, default="",
+            help="""Command used to resize images
+                    You can use {src} {dst} {width} and {height}""")
     args = parser.parse_args()
 
 
     # Create the main gallery
-    gallery = Gallery(args.root, args.cache)
+    gallery = Gallery(args.root, args.cache, resize_cmd=args.resize_cmd)
 
 
     # Run the webserver
