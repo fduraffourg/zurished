@@ -1,0 +1,23 @@
+pkgname=zurished
+pkgver=0.1
+pkgrel=1
+pkgdesc="Simple photo album"
+arch=('any')
+#url=https://github.com/rlenglet/openfaucet
+depends=('python3' 'python-aiohttp')
+makedepends=('git' 'elm-platform')
+
+source=('https://fdu.re/zurished.tar')
+md5sums=('SKIP')
+
+build() {
+  cd "$srcdir/frontend"
+  elm-make --yes Main.elm
+}
+
+package() {
+  cd "$srcdir/"
+  python3 setup.py install --root="$pkgdir" --optimize=1
+  install -Dm744 frontend/index.html "$pkgdir/usr/share/zurished/frontend/index.html"
+}
+
