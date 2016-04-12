@@ -72,9 +72,11 @@ update action model  =
     ExitListView -> { model | currentView = ExplorerView }
     ChangeWindowSize dimensions ->
       case model.currentView of
-        ImageView lvmodel -> { model |
-          currentView = ImageView (ListView.update (ListView.ChangeWindowSize dimensions) lvmodel) }
-        _ -> model
+        ImageView lvmodel -> { model
+          | currentView = ImageView (ListView.update (ListView.ChangeWindowSize dimensions) lvmodel)
+          , window = dimensions
+      }
+        _ -> { model | window = dimensions }
     ArrowPress dir -> case model.currentView of
         ImageView lvmodel -> case dir of
             (0,-1) -> update (ForwardViewer ListView.Next) model
