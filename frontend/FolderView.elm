@@ -123,7 +123,7 @@ cssPathList = [("padding", "5px"), ("background-color", color2), ("margin", "0px
 cssPathItem = cssClickable ++ [("display", "inline-block"), ("padding", "0px 5px")]
 
 cssVerticalList = [("list-style-type", "none"), ("padding", "5px")]
-cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("background-color", color4)]
+cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("background-color", color4), ("display", "inline-block") ]
 
 cssContentList = cssVerticalList
 cssFolderItem = cssClickable ++ cssVerticalItem ++
