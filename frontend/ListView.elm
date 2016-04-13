@@ -99,7 +99,6 @@ navButton cstyle address action =
         ,("top", "0px")
         ,("height", "100%")
         ,("position", "absolute")
-        ,("padding-top", "40%")
         ]
     positionStyle = case action of
         Prev -> List.append nextPrevPosStyle
@@ -122,11 +121,19 @@ navButton cstyle address action =
         Exit -> FontAwesome.times icolor isize
         _ -> div [][]
     finalStyle = List.concat [cstyle, genericStyle, positionStyle]
+
+    insidePrevNextStyle = [("position", "relative")
+                          ,("top", "50%")
+                          ]
+    insideStyle = case action of
+        Prev -> insidePrevNextStyle
+        Next -> insidePrevNextStyle
+        _ -> []
   in div
     [ onClick address action
-    , style (finalStyle)
+    , style finalStyle
     ]
-    [content]
+    [div [ style insideStyle ] [content]]
 
 view: Signal.Address Action -> Model -> Html
 view address model =
@@ -137,7 +144,7 @@ view address model =
     left = round (toFloat (winw - imgw) / 2)
     preload = Maybe.withDefault "" model.preloadUrl
   in div []
-    [ img [ src preload , style [("display", "none")] ][]
+    [ img [ src preload, width 0, height 0, style [("display", "none")] ][]
     , img [ src model.currentUrl
           , width imgw
           , height imgh
