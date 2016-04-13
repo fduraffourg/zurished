@@ -9,6 +9,8 @@ import Signal
 import Array exposing (Array)
 import Basics exposing (round, toFloat, min)
 import Maybe
+import FontAwesome
+import Color
 
 import Struct exposing (Image)
 
@@ -88,31 +90,43 @@ update action model = case action of
 
 navButton : List (String, String) -> Signal.Address Action -> Action -> Html
 navButton cstyle address action =
-  let navStyle =
-    [ ("position", "absolute")
-    , ("width", "50%")
-    , ("height", "100%")
-    , ("top", "0px")
-    ]
+  let
+    genericStyle =
+        [("opacity", "0.5")
+        ]
+    nextPrevPosStyle =
+        [("width", "30%")
+        ,("top", "0px")
+        ,("height", "100%")
+        ,("position", "absolute")
+        ,("padding-top", "40%")
+        ]
+    positionStyle = case action of
+        Prev -> List.append nextPrevPosStyle
+                [("left", "0px")
+                ]
+        Next -> List.append nextPrevPosStyle
+                [("right", "0px")
+                ,("text-align", "right")
+                ]
+        Exit -> [("top", "0px")
+                ,("right", "0px")
+                ,("position", "absolute")
+                ]
+        _ -> []
+    icolor = Color.greyscale 0.5
+    isize = 70
+    content = case action of
+        Prev -> FontAwesome.chevron_left icolor isize
+        Next -> FontAwesome.chevron_right icolor isize
+        Exit -> FontAwesome.times icolor isize
+        _ -> div [][]
+    finalStyle = List.concat [cstyle, genericStyle, positionStyle]
   in div
     [ onClick address action
-    , style (List.append navStyle cstyle)
+    , style (finalStyle)
     ]
-    []
-
-exitButton : Signal.Address Action -> Html
-exitButton address =
-  div [ style
-        [ ("position", "absolute")
-        , ("width", "80px")
-        , ("height", "80px")
-        , ("top", "0px")
-        , ("right", "0px")
-        , ("background-color", "gray")
-        ]
-      , onClick address Exit]
-      []
-
+    [content]
 
 view: Signal.Address Action -> Model -> Html
 view address model =
@@ -128,9 +142,9 @@ view address model =
           , width imgw
           , height imgh
           , style [("margin-left", (toString left) ++ "px")]] []
-    , navButton [("left", "0px")] address Prev
-    , navButton [("right", "0px")] address Next
-    , exitButton address
+    , navButton [] address Prev
+    , navButton [] address Next
+    , navButton [] address Exit
     ]
 
 
