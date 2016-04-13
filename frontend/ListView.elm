@@ -8,6 +8,7 @@ import Debug
 import Signal
 import Array exposing (Array)
 import Basics exposing (round, toFloat, min)
+import Maybe
 
 import Struct exposing (Image)
 
@@ -21,6 +22,7 @@ type alias Model =
   , resizeBoxes : List (Int, Int)
   , resizeBox : (Int, Int)
   , currentUrl : String
+  , preloadUrl : Maybe String
   }
 
 initModel : List Image -> Image -> List (Int, Int) -> (Int, Int) -> Model
@@ -35,6 +37,7 @@ initModel list current resizeBoxes window =
   , resizeBoxes = resizeBoxes
   , resizeBox = resizeBox
   , currentUrl = getUrl resizeBox current
+  , preloadUrl = Nothing
   }
 
 getCurrentPosition : List Image -> Image -> Int
@@ -63,6 +66,8 @@ update action model = case action of
         position = position
         , current = elm
         , currentUrl = getUrl model.resizeBox elm
+        , preloadUrl = Array.get (position+1) model.content
+            |> Maybe.map (getUrl model.resizeBox)
         }
       Nothing -> model
   Prev -> let position = model.position - 1
@@ -71,6 +76,7 @@ update action model = case action of
         position = position
         , current = elm
         , currentUrl = getUrl model.resizeBox elm
+        , preloadUrl = Nothing
         }
       Nothing -> model
   ChangeWindowSize window ->
@@ -115,8 +121,10 @@ view address model =
     (imgw, imgh) = getImageSize model.current model.window
     (winw, _) = model.window
     left = round (toFloat (winw - imgw) / 2)
+    preload = Maybe.withDefault "" model.preloadUrl
   in div []
-    [ img [ src model.currentUrl
+    [ img [ src preload , style [("display", "none")] ][]
+    , img [ src model.currentUrl
           , width imgw
           , height imgh
           , style [("margin-left", (toString left) ++ "px")]] []
