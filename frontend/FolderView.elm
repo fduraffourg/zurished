@@ -5,7 +5,7 @@ import String
 import List
 import Html exposing (..)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, src)
 import Signal
 
 -- MODEL
@@ -53,13 +53,15 @@ view address model =
     imageItems = List.map
       (imageToItem address model.content)
       model.content
-    contentList = ul [ style cssContentList ]
-      (folderItems ++ imageItems)
+    folderList = ul [ style cssContentList ] folderItems
+    imageList = ul [ style cssContentList ] imageItems
+
   in
     div []
       [ h1 [ style cssTitle ] [ text title ]
       , pathList
-      , contentList
+      , folderList
+      , imageList
       ]
 
 
@@ -74,15 +76,12 @@ foldPath part prev =
 imageToItem : Signal.Address Action -> List Struct.Image -> Struct.Image -> Html
 imageToItem address allImages image =
   let
-    path = image.path
-    name = path
-      |> String.split "/"
-      |> List.foldl (\a b -> a) ""
+    path = "/medias/thumbnail/" ++ image.path
   in
     li
       [ onClick address (ViewImages allImages image)
       , style cssImageItem ]
-      [ text path ]
+      [ img [ src path ] [] ]
 
 pathToItem : Signal.Address Action -> (String, String) -> Html
 pathToItem address (path,name) =
@@ -123,7 +122,7 @@ cssPathList = [("padding", "5px"), ("background-color", color2), ("margin", "0px
 cssPathItem = cssClickable ++ [("display", "inline-block"), ("padding", "0px 5px")]
 
 cssVerticalList = [("list-style-type", "none"), ("padding", "5px")]
-cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("background-color", color4), ("display", "inline-block") ]
+cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("display", "inline-block") ]
 
 cssContentList = cssVerticalList
 cssFolderItem = cssClickable ++ cssVerticalItem ++
