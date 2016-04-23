@@ -7,6 +7,8 @@ import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (style, src)
 import Signal
+import FontAwesome
+import Color
 
 -- MODEL
 
@@ -96,7 +98,9 @@ folderToItem address {path, name} =
   li
     [ onClick address (ChangePath path), style cssFolderItem ]
     -- [ text (name ++ " - " ++ path) ]
-    [ text name ]
+    [ FontAwesome.folder (Color.greyscale 0) 70
+    , br [] []
+    , text name ]
 
 
 -- CSS
@@ -122,9 +126,9 @@ cssPathList = [("padding", "5px"), ("background-color", color2), ("margin", "0px
 cssPathItem = cssClickable ++ [("display", "inline-block"), ("padding", "0px 5px")]
 
 cssVerticalList = [("list-style-type", "none"), ("padding", "5px")]
-cssVerticalItem = [("margin", "2px"), ("padding", "8px"), ("display", "inline-block") ]
+cssVerticalItem = [("margin", "8px"), ("display", "inline-block")]
 
 cssContentList = cssVerticalList
 cssFolderItem = cssClickable ++ cssVerticalItem ++
-  [ ("background-color", color3), ("color", "white") ]
-cssImageItem = cssClickable ++ cssVerticalItem
+  [ ("background-color", color3), ("color", "white"), ("text-align", "center"), ("min-width", "100px"), ("padding", "8px") ]
+cssImageItem = cssClickable ++ cssVerticalItem ++ [("width", "200px"), ("height", "200px")]
