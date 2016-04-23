@@ -149,8 +149,8 @@ view address model =
           , width imgw
           , height imgh
           , style [("margin-left", (toString left) ++ "px")]] []
-    , navButton [] address Prev
-    , navButton [] address Next
+    , if model.position /= 0 then navButton [] address Prev else div [][]
+    , if model.position /= ((Array.length model.content) - 1) then navButton [] address Next else div [][]
     , navButton [] address Exit
     ]
 
