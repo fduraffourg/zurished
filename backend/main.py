@@ -34,7 +34,7 @@ def serve_static_file(path):
 
 
 class Gallery(object):
-    def __init__(self, rootdir, cachedir, resize_cmd=""):
+    def __init__(self, rootdir, cachedir, resize_cmd="", thumbnail_cmd=""):
         self.rootdir = rootdir
         self.cachedir = cachedir
         self.rootalbum = Album("", rootdir)
@@ -43,6 +43,11 @@ class Gallery(object):
             self.resize_cmd = resize_cmd
         else:
             self.resize_cmd = "convert '{src}' -resize {width}x{height} '{dst}'"
+
+        if thumbnail_cmd != "":
+            self.thumbnail_cmd = thumbnail_cmd
+        else:
+            self.thumbnail_cmd = "convert '{src}' -thumbnail {width}x{height}^ -gravity center -extent {width}x{height} '{dst}'"
 
     def list_all_medias(self):
         medias = []
@@ -128,6 +133,40 @@ class Gallery(object):
         else:
             return web.Response(body="Error when resizing the media".encode('utf-8'))
 
+    @asyncio.coroutine
+    def web_thumbnail_handler(self, request):
+        path = request.match_info['path']
+
+        # Build paths of the image and of the cache
+        cache_path = os.path.join(self.cachedir,
+                "thumbnails",
+                path)
+        media_path = os.path.join(self.rootdir, path)
+
+        # Create the cache directory if necessary
+        if not prepare_cache_directory(cache_path):
+            return web.Response(body="Unable to create cache directory".encode('utf-8'))
+
+
+        # If the image is already on the cache, send it
+        if os.path.isfile(cache_path):
+            print("Serve from cache (%s)" % cache_path)
+            return serve_static_file(cache_path)
+
+        # Otherwise, need to create the cache file
+        command = self.thumbnail_cmd.format(
+                src=media_path,
+                dst=cache_path,
+                width=THUMBNAIL[0],
+                height=THUMBNAIL[1],
+                )
+        create_process = asyncio.create_subprocess_shell(command)
+        process = yield from create_process
+        return_code = yield from process.wait()
+        if return_code == 0:
+            return serve_static_file(cache_path)
+        else:
+            return web.Response(body="Error when resizing the media".encode('utf-8'))
 
 def main():
     parser = argparse.ArgumentParser(description='Simple photo gallery server')
@@ -142,17 +181,21 @@ def main():
     parser.add_argument('--resize-cmd', type=str, default="",
             help="""Command used to resize images
                     You can use {src} {dst} {width} and {height}""")
+    parser.add_argument('--thumbnail-cmd', type=str, default="",
+            help="""Command used to resize images
+                    You can use {src} {dst} {width} and {height}""")
     args = parser.parse_args()
 
 
     # Create the main gallery
-    gallery = Gallery(args.root, args.cache, resize_cmd=args.resize_cmd)
+    gallery = Gallery(args.root, args.cache, resize_cmd=args.resize_cmd, thumbnail_cmd=args.thumbnail_cmd)
 
 
     # Run the webserver
     app = web.Application()
     app.router.add_route('GET', '/gallery', gallery.web_gallery_handler)
     app.router.add_route('GET', '/medias/resized/{width}x{height}/{path:.*}', gallery.web_resize_handler)
+    app.router.add_route('GET', '/medias/thumbnail/{path:.*}', gallery.web_thumbnail_handler)
     app.router.add_static('/medias/full/', args.root)
     app.router.add_static('/', args.static)
     web.run_app(app, port=args.port)
