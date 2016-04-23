@@ -45,6 +45,7 @@ initModel = { path = ""
 
 -- UPDATE
 
+mb : Signal.Mailbox Action
 mb = Signal.mailbox NoOp
 
 type Action = UpdateContent Struct.TopContent
@@ -99,12 +100,14 @@ view model =
     ImageView model -> ListView.view viewerAddress model
 
 
+listStringToHtml : String -> Html
 listStringToHtml string = li [] [ text string ]
 
 
 
 -- Explorer connectors
 
+explorerAddress : Signal.Address FolderView.Action
 explorerAddress = Signal.forwardTo mb.address signalExplorerToMain
 
 signalExplorerToMain : FolderView.Action -> Action
@@ -116,6 +119,7 @@ signalExplorerToMain action = case action of
 
 -- Viewer connectors
 
+viewerAddress : Signal.Address ListView.Action
 viewerAddress = Signal.forwardTo mb.address signalViewerToMain
 
 signalViewerToMain : ListView.Action -> Action
@@ -127,6 +131,7 @@ signalViewerToMain action =
 
 -- Retrieve content from server
 
+httpAddress : Signal.Address Struct.TopContent
 httpAddress = Signal.forwardTo mb.address signalHttpToMain
 
 signalHttpToMain : Struct.TopContent -> Action
@@ -142,13 +147,17 @@ port fetchString = Task.andThen
 
 -- Get window size
 
+windowSignal : Signal Action
 windowSignal = Signal.map signalWindowToMain Window.dimensions
 
+signalWindowToMain : ( Int, Int ) -> Action
 signalWindowToMain dimensions = ChangeWindowSize dimensions
 
 
 -- Handle Keyboard
 
+keyboardSignal : Signal Action
 keyboardSignal = Signal.map signalKeyboardToMain Keyboard.arrows
 
+signalKeyboardToMain : { a | x : Int, y : Int } -> Action
 signalKeyboardToMain dir = ArrowPress (dir.x, dir.y)
