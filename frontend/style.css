@@ -8,6 +8,14 @@ h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-w
 .fv-folder-list { }
 .fv-folder-list > li { background-color: #f0c808; color: white; text-align: center; width: 134px; padding: 8px; word-break: break-all; }
 
+.iv-button { opacity: 0.5; }
+#iv-button-prev,#iv-button-next { top: 0px; height: 100%; width: 30%; position: absolute }
+#iv-button-next > div { position: relative; top: 50%; }
+#iv-button-prev > div { position: relative; top: 50%; }
+#iv-button-prev { left: 0px; }
+#iv-button-next { right: 0px; text-align: right; }
+#iv-toolbar { position: absolute; top: 0px; right: 0px }
+#iv-toolbar > div { display: inline-block; }
 
 // color1 = "#086788"
 // color2 = "#06aed5"

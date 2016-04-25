@@ -3,7 +3,7 @@ module ListView (Model, initModel, Action(Prev,Next,Exit,ChangeWindowSize,NoOp),
 import List
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (width, height, classList, style, src, id, class)
 import Debug
 import Signal
 import Array exposing (Array)
@@ -58,7 +58,7 @@ getCurrentPosition list current =
 
 -- UPDATE
 
-type Action = Next | Prev | Exit | ChangeWindowSize (Int, Int) | NoOp
+type Action = Next | Prev | Exit | Fullscreen | ChangeWindowSize (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model = case action of
@@ -91,49 +91,21 @@ update action model = case action of
 navButton : List (String, String) -> Signal.Address Action -> Action -> Html
 navButton cstyle address action =
   let
-    genericStyle =
-        [("opacity", "0.5")
-        ]
-    nextPrevPosStyle =
-        [("width", "30%")
-        ,("top", "0px")
-        ,("height", "100%")
-        ,("position", "absolute")
-        ]
-    positionStyle = case action of
-        Prev -> List.append nextPrevPosStyle
-                [("left", "0px")
-                ]
-        Next -> List.append nextPrevPosStyle
-                [("right", "0px")
-                ,("text-align", "right")
-                ]
-        Exit -> [("top", "0px")
-                ,("right", "0px")
-                ,("position", "absolute")
-                ]
-        _ -> []
+    (content, cssid) = case action of
+        Prev -> (FontAwesome.chevron_left, "iv-button-prev")
+        Next -> (FontAwesome.chevron_right, "iv-button-next")
+        Exit -> (FontAwesome.times, "iv-button-exit")
+        Fullscreen -> (FontAwesome.arrows_alt, "iv-button-fullscreen")
+        _ -> (FontAwesome.chain_broken, "")
+
     icolor = Color.greyscale 0.5
     isize = 70
-    content = case action of
-        Prev -> FontAwesome.chevron_left icolor isize
-        Next -> FontAwesome.chevron_right icolor isize
-        Exit -> FontAwesome.times icolor isize
-        _ -> div [][]
-    finalStyle = List.concat [cstyle, genericStyle, positionStyle]
-
-    insidePrevNextStyle = [("position", "relative")
-                          ,("top", "50%")
-                          ]
-    insideStyle = case action of
-        Prev -> insidePrevNextStyle
-        Next -> insidePrevNextStyle
-        _ -> []
   in div
     [ onClick address action
-    , style finalStyle
+    , id cssid
+    , class "iv-button"
     ]
-    [div [ style insideStyle ] [content]]
+    [div [] [content icolor isize]]
 
 view: Signal.Address Action -> Model -> Html
 view address model =
@@ -151,7 +123,10 @@ view address model =
           , style [("margin-left", (toString left) ++ "px")]] []
     , if model.position /= 0 then navButton [] address Prev else div [][]
     , if model.position /= ((Array.length model.content) - 1) then navButton [] address Next else div [][]
-    , navButton [] address Exit
+    , div [ id "iv-toolbar" ]
+        [ navButton [] address Fullscreen
+        , navButton [] address Exit
+        ]
     ]
 
 
