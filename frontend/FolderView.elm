@@ -5,7 +5,7 @@ import String
 import List
 import Html exposing (..)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style, src)
+import Html.Attributes exposing (src, width, height, id, class, classList)
 import Signal
 import FontAwesome
 import Color
@@ -47,20 +47,20 @@ view address model =
         |> List.foldl foldPath [("", rootName)]
         |> List.reverse
     pathElmts = List.map (pathToItem address) path
-    pathList = ul [ style cssPathList ]
-      (List.intersperse (li [ style cssPathItem ] [ text "/" ]) pathElmts)
+    pathList = ul [ id "fv-path" ]
+      (List.intersperse (li [] [ text "/" ]) pathElmts)
 
     -- CONTENT
     folderItems = List.map (folderToItem address) model.folders
     imageItems = List.map
       (imageToItem address model.content)
       model.content
-    folderList = ul [ style cssContentList ] folderItems
-    imageList = ul [ style cssContentList ] imageItems
+    folderList = ul [classList [("fv-list", True), ("fv-folder-list", True)]] folderItems
+    imageList = ul [classList [("fv-list", True), ("fv-image-list", True)]] imageItems
 
   in
     div []
-      [ h1 [ style cssTitle ] [ text title ]
+      [ h1 [] [ text title ]
       , pathList
       , folderList
       , imageList
@@ -81,54 +81,21 @@ imageToItem address allImages image =
     path = "/medias/thumbnail/" ++ image.path
   in
     li
-      [ onClick address (ViewImages allImages image)
-      , style cssImageItem ]
-      [ img [ src path ] [] ]
+      [ onClick address (ViewImages allImages image) ]
+      [ img [ src path, width 150, height 150] [] ]
 
 pathToItem : Signal.Address Action -> (String, String) -> Html
 pathToItem address (path,name) =
   li
-    [ onClick address (ChangePath path)
-    , style cssPathItem ]
+    [ onClick address (ChangePath path) ]
     -- [ text (name ++ " - " ++ path) ]
     [ text name ]
 
 folderToItem : Signal.Address Action -> Struct.Folder -> Html
 folderToItem address {path, name} =
   li
-    [ onClick address (ChangePath path), style cssFolderItem ]
+    [ onClick address (ChangePath path)]
     -- [ text (name ++ " - " ++ path) ]
     [ FontAwesome.folder (Color.greyscale 0) 70
     , br [] []
     , text name ]
-
-
--- CSS
-
--- color1 = "#e5f4e3"
--- color2 = "#5da9e9"
--- color3 = "#003f91"
--- color4 = "#ffffff"
--- color5 = "#6d326d"
-color1 = "#086788"
-color2 = "#06aed5"
-color3 = "#f0c808"
-color4 = "#fff1d0"
-color5 = "#dd1c1a"
-
-cssClickable = [("cursor", "pointer")]
-
-cssTitle = [("margin", "0px"), ("background-color", color1), ("color", "white")
-  , ("padding", "20px"), ("text-align", "center")]
-
-cssPathList = [("padding", "5px"), ("background-color", color2), ("margin", "0px")
-  , ("padding", "14px"), ("color", "white"), ("font-weight", "bold")]
-cssPathItem = cssClickable ++ [("display", "inline-block"), ("padding", "0px 5px")]
-
-cssVerticalList = [("list-style-type", "none"), ("padding", "5px")]
-cssVerticalItem = [("margin", "8px"), ("display", "inline-block")]
-
-cssContentList = cssVerticalList
-cssFolderItem = cssClickable ++ cssVerticalItem ++
-  [ ("background-color", color3), ("color", "white"), ("text-align", "center"), ("min-width", "100px"), ("padding", "8px") ]
-cssImageItem = cssClickable ++ cssVerticalItem ++ [("width", "200px"), ("height", "200px")]
