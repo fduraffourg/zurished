@@ -1,0 +1,16 @@
+html,head,body { padding:0; margin:0; }
+body { font-family: calibri, helvetica, arial, sans-serif; }
+h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-weight: bold; }
+#fv-path { padding: 14px; background-color: #06aed5; margin: 0px; color: white; font-weight: bold; }
+#fv-path > li { cursor: pointer; display: inline-block; padding: 0px 5px; }
+.fv-list { list-style-type: none; padding: 5px; }
+.fv-list > li { margin: 8px; display: inline-block; cursor: pointer; }
+.fv-folder-list { }
+.fv-folder-list > li { background-color: #f0c808; color: white; text-align: center; width: 134px; padding: 8px; word-break: break-all; }
+
+
+// color1 = "#086788"
+// color2 = "#06aed5"
+// color3 = "#f0c808"
+// color4 = "#fff1d0"
+// color5 = "#dd1c1a"
