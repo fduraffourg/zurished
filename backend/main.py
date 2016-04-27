@@ -311,6 +311,8 @@ def main():
     cache = Cache(args.cache)
     gallery = Gallery(args.root, cache, resize_cmd=args.resize_cmd, thumbnail_cmd=args.thumbnail_cmd)
 
+    # Don't wait for the first request to create the listing
+    gallery.list_all_medias()
 
     # Run the webserver
     app = web.Application()
