@@ -25,7 +25,7 @@ class Cache(object):
         self.root = path
 
     def get_full_path(self, path):
-        return os.path.join(self.root, self.path)
+        return os.path.join(self.root, path)
 
     def get_and_prepare_path(self, path):
         """
@@ -54,10 +54,20 @@ class Folder(object):
         self._medias = None
 
     def list_content(self):
-        print("List content for %s" % self.path)
         folders = []
         medias = []
+        cached_medias = {}
+        cache_dirty = False
+        cache_file = os.path.join("content", self.path, "content.json")
 
+        # Read the cache
+        cache_file = self.gallery.cache.get_full_path(cache_file)
+        if os.path.isfile(cache_file):
+            with open(cache_file) as fo:
+                for media in json.loads(fo.read()):
+                    cached_medias[media["name"]] = media
+
+        # List all files
         fullpath = os.path.join(self.gallery.rootdir, self.path)
         for direntry in os.scandir(fullpath):
             # If this is a directory, add it as a new folder
@@ -67,14 +77,28 @@ class Folder(object):
                 continue
 
             # Else this is a file
-            media = Media(direntry.name,
-                    direntry.path,
-                    self)
-            if not media.is_unknown():
-                medias.append(media)
+            if direntry.name in cached_medias:
+                medias.append(cached_medias[direntry.name])
+            else:
+                media = Media(direntry.name,
+                        direntry.path,
+                        self)
+                if not media.is_unknown():
+                    cache_dirty = True
+                    medias.append(media.to_dict())
+
+        # Write cache if dirty
+        if cache_dirty:
+            try:
+                cache_file = self.gallery.cache.get_and_prepare_path(cache_file)
+                with open(cache_file, "w") as fo:
+                    fo.write(json.dumps(medias))
+            except CacheCreationException:
+                # If we can't create directories for this cache file, that's not blocking
+                pass
 
         self._folders = sorted(folders, key=lambda f: f.path)
-        self._medias = sorted(medias, key=lambda m: m.name)
+        self._medias = sorted(medias, key=lambda m: m["name"])
 
     @property
     def folders(self):
@@ -161,7 +185,7 @@ class Gallery(object):
                 queue.append(new_folder)
 
             for media in folder.medias:
-                medias.append(media.to_dict())
+                medias.append(media)
         return medias
 
     def to_json(self):
