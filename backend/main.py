@@ -3,7 +3,8 @@ from aiohttp import web
 import json
 import os
 import asyncio
-from zurished.album import Album
+from enum import Enum
+from PIL import Image
 
 THUMBNAIL = (200, 200)
 RESIZES = [
@@ -14,16 +15,113 @@ RESIZES = [
     ]
 
 
-def prepare_cache_directory(path):
-    dir = os.path.dirname(path)
-    if os.path.isdir(dir):
-        return True
+class Cache(object):
+    def __init__(self, path):
+        # Root path of the cache
+        self.root = path
 
-    try:
-        os.makedirs(dir, exist_ok=True)
-        return True
-    except OSError:
-        return False
+    def get_full_path(self, path):
+        return os.path.join(self.root, self.path)
+
+    def get_and_prepare_path(self, path):
+        """
+        From the relative `path` given as input, compute the absolute path and
+        prepare it by creating missing directories.
+        """
+        fullpath = os.path.join(self.root, self.path)
+
+        dir = os.path.dirname(fullpath)
+        if os.path.isdir(dir):
+            return fullpath
+
+        try:
+            os.makedirs(dir, exist_ok=True)
+            return fullpath
+        except OSError:
+            raise NameError("Unable to create cache dir")
+
+
+class Folder(object):
+    def __init__(self, path, gallery):
+        self.path = path
+        self.gallery = gallery
+
+        self._folders = None
+        self._medias = None
+
+    def list_content(self):
+        print("List content for %s" % self.path)
+        folders = []
+        medias = []
+
+        fullpath = os.path.join(self.gallery.rootdir, self.path)
+        for direntry in os.scandir(fullpath):
+            # If this is a directory, add it as a new folder
+            if direntry.is_dir():
+                folder = Folder(os.path.join(self.path, direntry.name), self.gallery)
+                folders.append(folder)
+                continue
+
+            # Else this is a file
+            media = Media(direntry.name,
+                    direntry.path,
+                    self)
+            if not media.is_unknown():
+                medias.append(media)
+
+        self._folders = sorted(folders, key=lambda f: f.path)
+        self._medias = sorted(medias, key=lambda m: m.name)
+
+    @property
+    def folders(self):
+        if self._folders is None:
+            self.list_content()
+        return self._folders
+
+    @property
+    def medias(self):
+        if self._medias is None:
+            self.list_content()
+        return self._medias
+
+    def to_dict(self):
+        return {
+                'path': self.path,
+                'folder': self.folders,
+                'medias': self.medias
+                }
+
+
+class MediaType(Enum):
+    unknown = 0
+    image = 1
+
+
+class Media(object):
+    def __init__(self, name, realpath, folder):
+        self.name = name
+        self.realpath = realpath
+        self.folder = folder
+
+        try:
+            image = Image.open(realpath)
+            self.width = image.width
+            self.height = image.height
+            self.type = MediaType.image
+        except:
+            self.type = MediaType.unknown
+
+
+    def is_unknown(self):
+        return self.type == MediaType.unknown
+
+    def to_dict(self):
+        return {
+                'name': self.name,
+                'width': self.width,
+                'height': self.height,
+                'path': os.path.join(self.folder.path, self.name),
+                }
 
 
 def serve_static_file(path):
@@ -37,7 +135,7 @@ class Gallery(object):
     def __init__(self, rootdir, cachedir, resize_cmd="", thumbnail_cmd=""):
         self.rootdir = rootdir
         self.cachedir = cachedir
-        self.rootalbum = Album("", rootdir)
+        self.rootfolder = Folder("", self)
 
         if resize_cmd != "":
             self.resize_cmd = resize_cmd
@@ -51,14 +149,14 @@ class Gallery(object):
 
     def list_all_medias(self):
         medias = []
-        queue = [ self.rootalbum ]
+        queue = [ self.rootfolder ]
         while len(queue) > 0:
-            album = queue.pop()
+            folder = queue.pop()
 
-            for new_album in album.albums:
-                queue.append(new_album)
+            for new_folder in folder.folders:
+                queue.append(new_folder)
 
-            for media in album.medias:
+            for media in folder.medias:
                 medias.append(media.to_dict())
         return medias
 
