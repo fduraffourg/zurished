@@ -15,6 +15,10 @@ RESIZES = [
     ]
 
 
+class CacheCreationException(Exception):
+    """Raised when we can't create thing in the cache"""
+    pass
+
 class Cache(object):
     def __init__(self, path):
         # Root path of the cache
@@ -28,7 +32,7 @@ class Cache(object):
         From the relative `path` given as input, compute the absolute path and
         prepare it by creating missing directories.
         """
-        fullpath = os.path.join(self.root, self.path)
+        fullpath = os.path.join(self.root, path)
 
         dir = os.path.dirname(fullpath)
         if os.path.isdir(dir):
@@ -38,7 +42,7 @@ class Cache(object):
             os.makedirs(dir, exist_ok=True)
             return fullpath
         except OSError:
-            raise NameError("Unable to create cache dir")
+            raise CacheCreationException
 
 
 class Folder(object):
@@ -132,9 +136,9 @@ def serve_static_file(path):
 
 
 class Gallery(object):
-    def __init__(self, rootdir, cachedir, resize_cmd="", thumbnail_cmd=""):
+    def __init__(self, rootdir, cache, resize_cmd="", thumbnail_cmd=""):
         self.rootdir = rootdir
-        self.cachedir = cachedir
+        self.cache = cache
         self.rootfolder = Folder("", self)
 
         if resize_cmd != "":
@@ -201,15 +205,12 @@ class Gallery(object):
 
 
         # Build paths of the image and of the cache
-        cache_path = os.path.join(self.cachedir,
-                "resized/%sx%s" % (width, height),
-                path)
-        media_path = os.path.join(self.rootdir, path)
-
-        # Create the cache directory if necessary
-        if not prepare_cache_directory(cache_path):
+        try:
+            cache_path = self.cache.get_and_prepare_path(path)
+        except CacheCreationException:
             return web.Response(body="Unable to create cache directory".encode('utf-8'))
 
+        media_path = os.path.join(self.rootdir, path)
 
         # If the image is already on the cache, send it
         if os.path.isfile(cache_path):
@@ -236,15 +237,12 @@ class Gallery(object):
         path = request.match_info['path']
 
         # Build paths of the image and of the cache
-        cache_path = os.path.join(self.cachedir,
-                "thumbnails",
-                path)
-        media_path = os.path.join(self.rootdir, path)
-
-        # Create the cache directory if necessary
-        if not prepare_cache_directory(cache_path):
+        try:
+            cache_path = self.cache.get_and_prepare_path(path)
+        except CacheCreationException:
             return web.Response(body="Unable to create cache directory".encode('utf-8'))
 
+        media_path = os.path.join(self.rootdir, path)
 
         # If the image is already on the cache, send it
         if os.path.isfile(cache_path):
@@ -286,7 +284,8 @@ def main():
 
 
     # Create the main gallery
-    gallery = Gallery(args.root, args.cache, resize_cmd=args.resize_cmd, thumbnail_cmd=args.thumbnail_cmd)
+    cache = Cache(args.cache)
+    gallery = Gallery(args.root, cache, resize_cmd=args.resize_cmd, thumbnail_cmd=args.thumbnail_cmd)
 
 
     # Run the webserver
