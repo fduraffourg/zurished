@@ -58,7 +58,7 @@ getCurrentPosition list current =
 
 -- UPDATE
 
-type Action = Next | Prev | Exit | Fullscreen | ChangeWindowSize (Int, Int) | NoOp
+type Action = Next | Prev | Exit | ChangeWindowSize (Int, Int) | NoOp
 
 update : Action -> Model -> Model
 update action model = case action of
@@ -95,7 +95,6 @@ navButton cstyle address action =
         Prev -> (FontAwesome.chevron_left, "iv-button-prev")
         Next -> (FontAwesome.chevron_right, "iv-button-next")
         Exit -> (FontAwesome.times, "iv-button-exit")
-        Fullscreen -> (FontAwesome.arrows_alt, "iv-button-fullscreen")
         _ -> (FontAwesome.chain_broken, "")
 
     icolor = Color.greyscale 0.5
@@ -124,8 +123,7 @@ view address model =
     , if model.position /= 0 then navButton [] address Prev else div [][]
     , if model.position /= ((Array.length model.content) - 1) then navButton [] address Next else div [][]
     , div [ id "iv-toolbar" ]
-        [ navButton [] address Fullscreen
-        , navButton [] address Exit
+        [ navButton [] address Exit
         ]
     ]
 
