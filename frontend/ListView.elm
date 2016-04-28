@@ -110,16 +110,17 @@ view: Signal.Address Action -> Model -> Html
 view address model =
   let
     (boxw, boxh) = model.resizeBox
-    (imgw, imgh) = getImageSize model.current model.window
-    (winw, _) = model.window
-    left = round (toFloat (winw - imgw) / 2)
+    sizeClass = if imageConstraintByHeight model.current model.window
+                   then "img-fullheight"
+                   else "img-fullwidth"
     preload = Maybe.withDefault "" model.preloadUrl
   in div []
     [ img [ src preload, width 0, height 0, style [("display", "none")] ][]
-    , img [ src model.currentUrl
-          , width imgw
-          , height imgh
-          , style [("margin-left", (toString left) ++ "px")]] []
+    , div [ id "iv-img-container" ]
+          [ img [ src model.currentUrl
+                , class sizeClass
+                ] []
+          ]
     , if model.position /= 0 then navButton [] address Prev else div [][]
     , if model.position /= ((Array.length model.content) - 1) then navButton [] address Next else div [][]
     , div [ id "iv-toolbar" ]
@@ -130,15 +131,11 @@ view address model =
 
 -- UTILS
 
-getImageSize : Image -> (Int, Int) -> (Int, Int)
-getImageSize image (winw, winh) =
+imageConstraintByHeight : Image -> (Int, Int) -> Bool
+imageConstraintByHeight image (winw, winh) =
   let
-    natural = (toFloat image.width, toFloat image.height)
-    wcons = (toFloat winw, (toFloat winw) * (toFloat image.height) / (toFloat image.width))
-    hcons = ((toFloat winh) * (toFloat image.width) / (toFloat image.height), toFloat winh)
-    (fwidth, fheight) = Basics.min natural (Basics.min wcons hcons)
-  in
-    (round fwidth, round fheight)
+    height = round (toFloat (winw * image.height) / (toFloat image.width))
+  in height >= winh
 
 chooseResizeBox : List (Int, Int) -> (Int, Int) -> (Int, Int)
 chooseResizeBox sizes (winw, winh) =

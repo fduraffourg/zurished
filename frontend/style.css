@@ -1,4 +1,4 @@
-html,head,body { padding:0; margin:0; }
+html,head,body { padding:0; margin:0; height: 100%; width: 100%; }
 body { font-family: calibri, helvetica, arial, sans-serif; }
 h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-weight: bold; }
 #fv-path { padding: 14px; background-color: #06aed5; margin: 0px; color: white; font-weight: bold; }
@@ -16,6 +16,9 @@ h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-w
 #iv-button-next { right: 0px; text-align: right; }
 #iv-toolbar { position: absolute; top: 0px; right: 0px }
 #iv-toolbar > div { display: inline-block; }
+#iv-img-container { position: absolute; height: 100%; width: 100%; text-align: center; }
+#iv-img-container > .img-fullwidth { width: 100%; }
+#iv-img-container > .img-fullheight { height: 100%; }
 
 // color1 = "#086788"
 // color2 = "#06aed5"
