@@ -1,4 +1,4 @@
-module Struct (TopContent, emptyTopContent, Image, Folder, topContentDecoder, topFolders, imageInSubDirs, imageInDir, listFolders, pathMerge, pathRelative, normPath) where
+module Struct (TopContent, emptyTopContent, Image, Folder, topContentDecoder, topFolders, imageInSubDirs, imageInDir, listFolders, pathMerge, normPath) where
 
 import Json.Decode as Json exposing ((:=), Decoder, tuple2, int, string, list)
 import String
@@ -75,8 +75,7 @@ listFolders path list =
     isGT2 list = if (List.length list) > 1 then True else False
     listFolders = list
       |> List.map .path
-      |> List.filter (String.startsWith path)
-      |> List.map (pathRelative path)
+      |> List.filterMap (relativePath path)
       |> List.map (String.split "/")
       |> List.filter isGT2
       |> List.filterMap List.head
@@ -96,13 +95,9 @@ imageInSubDirs path image =
 
 -- True if image is in the given path
 imageInDir : String -> Image -> Bool
-imageInDir path image =
-  if imageInSubDirs path image
-  then
-    let relpath = pathRelative path image.path
-    in
-      if String.contains "/" relpath then False else True
-  else False
+imageInDir path image = case relativePath path image.path of
+  Nothing -> False
+  Just relpath -> if String.contains "/" relpath then False else True
 
 
 pathMerge : String -> String -> String
@@ -113,13 +108,14 @@ pathMerge start end =
     (start, "") -> start
     (start, end) -> start ++ "/" ++ end
 
-pathRelative : String -> String -> String
-pathRelative subpath path =
-  let
-    lenPath = String.length subpath
-    remains = String.dropLeft lenPath path
-  in
-    if (String.startsWith "/" remains) then (String.dropLeft 1 remains) else remains
+relativePath : String -> String -> Maybe String
+relativePath start full = if start == ""
+  then Just full
+  else let
+    slashedStart = if String.endsWith "/" start then start else start ++ "/"
+    in if String.startsWith slashedStart full
+       then Just (String.dropLeft (String.length slashedStart) full)
+       else Nothing
 
 normPath : String -> String
 normPath path = if String.endsWith "/" path then String.slice 0 -1 path else path
