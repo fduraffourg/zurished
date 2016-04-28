@@ -58,7 +58,7 @@ class Converter(object):
             self.img_resize_cmd = img_resize_cmd
 
         if img_resize_square_cmd == "":
-            self.img_resize_square_cmd = DEFAULT_RESIZE_CMD
+            self.img_resize_square_cmd = DEFAULT_RESIZE_SQUARE_CMD
         else:
             self.img_resize_square_cmd = img_resize_square_cmd
 
@@ -264,8 +264,9 @@ class Gallery(object):
 
 
         # Build paths of the image and of the cache
+        relative_cache_path = os.path.join("resized/%sx%s" % (width, height), path)
         try:
-            cache_path = self.cache.get_and_prepare_path(path)
+            cache_path = self.cache.get_and_prepare_path(relative_cache_path)
         except CacheCreationException:
             return web.Response(body="Unable to create cache directory".encode('utf-8'))
 
@@ -293,8 +294,9 @@ class Gallery(object):
         path = request.match_info['path']
 
         # Build paths of the image and of the cache
+        relative_cache_path = os.path.join("thumbnails", path)
         try:
-            cache_path = self.cache.get_and_prepare_path(path)
+            cache_path = self.cache.get_and_prepare_path(relative_cache_path)
         except CacheCreationException:
             return web.Response(body="Unable to create cache directory".encode('utf-8'))
 
