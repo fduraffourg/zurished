@@ -239,7 +239,8 @@ class Gallery(object):
                 'sizes': RESIZES,
                 }
 
-    async def web_gallery_handler(self, request):
+    @asyncio.coroutine
+    def web_gallery_handler(self, request):
         result = {
             "sizes": RESIZES,
             "images": self.list_all_medias()
