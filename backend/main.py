@@ -246,7 +246,8 @@ class Gallery(object):
             "images": self.list_all_medias()
             }
         dump = json.dumps(result)
-        return web.Response(body=dump.encode('utf-8'))
+        return web.Response(content_type="application/json",
+                            body=dump.encode('utf-8'))
 
     @asyncio.coroutine
     def web_resize_handler(self, request):
