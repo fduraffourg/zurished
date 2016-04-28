@@ -14,6 +14,8 @@ RESIZES = [
     (1920, 1080),
     ]
 
+DEFAULT_RESIZE_CMD = "convert '{src}' -resize {width}x{height} '{dst}'"
+DEFAULT_RESIZE_SQUARE_CMD = "convert '{src}' -thumbnail {width}x{height}^ -gravity center -extent {width}x{height} '{dst}'"
 
 class CacheCreationException(Exception):
     """Raised when we can't create thing in the cache"""
@@ -43,6 +45,48 @@ class Cache(object):
             return fullpath
         except OSError:
             raise CacheCreationException
+
+
+class Converter(object):
+    def __init__(self, img_resize_cmd="", img_resize_square_cmd=""):
+        # Ongoin operations, indexed by the cache file path
+        self.ongoing = {}
+
+        if img_resize_cmd == "":
+            self.img_resize_cmd = DEFAULT_RESIZE_CMD
+        else:
+            self.img_resize_cmd = img_resize_cmd
+
+        if img_resize_square_cmd == "":
+            self.img_resize_square_cmd = DEFAULT_RESIZE_CMD
+        else:
+            self.img_resize_square_cmd = img_resize_square_cmd
+
+    #@asyncio.coroutine
+    def resize_image(self, input, output, width, height, square=False):
+        # A resize is already ongoing, just wait for it to finish
+        if output in self.ongoing:
+            process = self.ongoing[output]
+            rc = yield from process.wait()
+            return rc == 0
+
+        # Otherwise, start the resize
+        if square:
+            template = self.img_resize_square_cmd
+        else:
+            template = self.img_resize_cmd
+        command = template.format(
+                src=input,
+                dst=output,
+                width=width,
+                height=height,
+                )
+        create_process = asyncio.create_subprocess_shell(command)
+        process = yield from create_process
+        self.ongoing[output] = process
+        rc = yield from process.wait()
+        del self.ongoing[output]
+        return rc == 0
 
 
 class Folder(object):
@@ -160,20 +204,11 @@ def serve_static_file(path):
 
 
 class Gallery(object):
-    def __init__(self, rootdir, cache, resize_cmd="", thumbnail_cmd=""):
+    def __init__(self, rootdir, cache, converter):
         self.rootdir = rootdir
         self.cache = cache
         self.rootfolder = Folder("", self)
-
-        if resize_cmd != "":
-            self.resize_cmd = resize_cmd
-        else:
-            self.resize_cmd = "convert '{src}' -resize {width}x{height} '{dst}'"
-
-        if thumbnail_cmd != "":
-            self.thumbnail_cmd = thumbnail_cmd
-        else:
-            self.thumbnail_cmd = "convert '{src}' -thumbnail {width}x{height}^ -gravity center -extent {width}x{height} '{dst}'"
+        self.converter = converter
 
     def list_all_medias(self):
         medias = []
@@ -241,17 +276,14 @@ class Gallery(object):
             print("Serve from cache (%s)" % cache_path)
             return serve_static_file(cache_path)
 
-        # Otherwise, need to create the cache file
-        command = self.resize_cmd.format(
-                src=media_path,
-                dst=cache_path,
-                width=width,
-                height=height,
-                )
-        create_process = asyncio.create_subprocess_shell(command)
-        process = yield from create_process
-        return_code = yield from process.wait()
-        if return_code == 0:
+        # Otherwise, need to resize
+        resized = yield from self.converter.resize_image(
+                media_path,
+                cache_path,
+                width,
+                height,
+                False)
+        if resized:
             return serve_static_file(cache_path)
         else:
             return web.Response(body="Error when resizing the media".encode('utf-8'))
@@ -273,20 +305,18 @@ class Gallery(object):
             print("Serve from cache (%s)" % cache_path)
             return serve_static_file(cache_path)
 
-        # Otherwise, need to create the cache file
-        command = self.thumbnail_cmd.format(
-                src=media_path,
-                dst=cache_path,
-                width=THUMBNAIL[0],
-                height=THUMBNAIL[1],
-                )
-        create_process = asyncio.create_subprocess_shell(command)
-        process = yield from create_process
-        return_code = yield from process.wait()
-        if return_code == 0:
+        # Otherwise, need to resize
+        resized = yield from self.converter.resize_image(
+                media_path,
+                cache_path,
+                THUMBNAIL[0],
+                THUMBNAIL[1],
+                True)
+        if resized:
             return serve_static_file(cache_path)
         else:
             return web.Response(body="Error when resizing the media".encode('utf-8'))
+
 
 def main():
     parser = argparse.ArgumentParser(description='Simple photo gallery server')
@@ -309,7 +339,8 @@ def main():
 
     # Create the main gallery
     cache = Cache(args.cache)
-    gallery = Gallery(args.root, cache, resize_cmd=args.resize_cmd, thumbnail_cmd=args.thumbnail_cmd)
+    converter = Converter(img_resize_cmd=args.resize_cmd, img_resize_square_cmd=args.thumbnail_cmd)
+    gallery = Gallery(args.root, cache, converter)
 
     # Don't wait for the first request to create the listing
     gallery.list_all_medias()
