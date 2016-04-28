@@ -6,7 +6,7 @@ import asyncio
 from enum import Enum
 from PIL import Image
 
-THUMBNAIL = (200, 200)
+THUMBNAIL = (150, 150)
 RESIZES = [
     # (width, height)
     (800, 600),
