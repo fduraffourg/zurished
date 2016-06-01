@@ -1,10 +1,11 @@
 import argparse
-from aiohttp import web
+import asyncio
 import json
 import os
-import asyncio
-from enum import Enum
+import pyinotify
 from PIL import Image
+from aiohttp import web
+from enum import Enum
 
 THUMBNAIL = (150, 150)
 RESIZES = [
@@ -208,6 +209,7 @@ class Gallery(object):
         self.rootdir = rootdir
         self.cache = cache
         self.rootfolder = Folder("", self)
+        self.rootfolder_dirty = False
         self.converter = converter
 
     def list_all_medias(self):
@@ -222,6 +224,28 @@ class Gallery(object):
             for media in folder.medias:
                 medias.append(media)
         return medias
+
+    def on_folder_change(self, event):
+        """
+        We receive an event saying that the root folder has changed.
+        To prevent triggering too many scannings (for example if lot of files
+        are copied at once), we delay it by 10 seconds
+        """
+        if not self.rootfolder_dirty:
+            self.rootfolder_dirty = True
+            loop = asyncio.get_event_loop()
+            loop.call_later(10, self.do_clear_folder_list)
+
+    def do_clear_folder_list(self):
+        """
+        We could analyse each event and update our structures accordingly.
+        But as most of the informations are cached, and to make the code really
+        simple, we just scan everything again. This should not be very
+        expensive to do that.
+        """
+        self.rootfolder_dirty = False
+        self.rootfolder = Folder("", self)
+        self.list_all_medias()
 
     def to_json(self):
         def fallback_to_dict(obj):
@@ -348,6 +372,16 @@ def main():
 
     # Don't wait for the first request to create the listing
     gallery.list_all_medias()
+
+    # Add a watch on folder changes
+    wm = pyinotify.WatchManager()
+    loop = asyncio.get_event_loop()
+    notifier = pyinotify.AsyncioNotifier(wm, loop)
+    wm.add_watch(args.root,
+            pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_TO | pyinotify.IN_MOVED_FROM,
+            proc_fun=gallery.on_folder_change,
+            rec=True,
+            auto_add=True)
 
     # Run the webserver
     app = web.Application()
