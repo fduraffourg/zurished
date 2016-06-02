@@ -1,13 +1,14 @@
-module Explorer exposing (Model, initModel, view, Msg(ChangePath, ViewImages, NoOp))
+module Explorer exposing (Model, initModel, update, view, Msg(..))
 
 import Struct
 import String
 import List
 import Html exposing (..)
-import Html.Events exposing (onClick)
-import Html.Attributes exposing (src, width, height, id, class, classList)
+import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (src, width, height, id, class, classList, placeholder, type', value)
 import FontAwesome
 import Color
+import Debug
 
 
 -- MODEL
@@ -16,7 +17,9 @@ import Color
 type alias Model =
     { path : String
     , folders : List Struct.Folder
+    , showFolders : List Struct.Folder
     , content : List Struct.Image
+    , search : String
     }
 
 
@@ -26,11 +29,16 @@ initModel path images =
         path =
             Struct.normPath path
 
+        folders =
+            Struct.listFolders path images
+
         -- content = Struct
     in
         { path = path
-        , folders = Struct.listFolders path images
+        , folders = folders
+        , showFolders = folders
         , content = List.filter (Struct.imageInDir path) images
+        , search = ""
         }
 
 
@@ -42,11 +50,34 @@ type Msg
     = ChangePath String
     | NoOp
     | ViewImages (List Struct.Image) Struct.Image
+    | Search String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        Search pattern ->
+            if String.isEmpty pattern then
+                ( { model | search = "", showFolders = model.folders }, Cmd.none )
+            else
+                ( { model
+                    | search = pattern
+                    , showFolders = filterFolders model.folders pattern
+                  }
+                , Cmd.none
+                )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+filterFolders : List Struct.Folder -> String -> List Struct.Folder
+filterFolders folders pattern =
+    let
+        pattern =
+            String.toLower pattern
+    in
+        List.filter (\f -> String.contains pattern (String.toLower f.name)) folders
 
 
 
@@ -81,10 +112,24 @@ view model =
         pathList =
             ul [ id "fv-path" ]
                 (List.intersperse (li [] [ text "/" ]) pathElmts)
+
+        -- SEARCH
+        searchInput =
+            input
+                [ placeholder "Search folders"
+                , type' "text"
+                , onInput Search
+                , value model.search
+                ]
+                []
+
+        searchBar =
+            div [ id "fv-searchbar" ] [ searchInput ]
     in
         div []
             [ h1 [] [ text title ]
             , pathList
+            , searchBar
             , iconView model
             ]
 
@@ -118,7 +163,7 @@ iconView : Model -> Html Msg
 iconView model =
     let
         folderItems =
-            List.map iconViewFolderToItem model.folders
+            List.map iconViewFolderToItem model.showFolders
 
         imageItems =
             List.map (iconViewImageToItem model.content)

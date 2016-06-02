@@ -3,6 +3,8 @@ body { font-family: calibri, helvetica, arial, sans-serif; }
 h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-weight: bold; }
 #fv-path { padding: 14px; background-color: #06aed5; margin: 0px; color: white; font-weight: bold; }
 #fv-path > li { cursor: pointer; display: inline-block; padding: 0px 5px; }
+#fv-searchbar { padding: 5px; text-align: center; }
+#fv-searchbar > input { width: 50%; max-width: 80%; min-width: 300px; }
 .fv-list { list-style-type: none; padding: 5px; }
 .fv-list > li { margin: 8px; display: inline-block; cursor: pointer; }
 .fv-folder-list { }

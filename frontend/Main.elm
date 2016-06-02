@@ -112,7 +112,13 @@ updateExplorer msg model modelView =
             )
 
         _ ->
-            ( model, Cmd.none )
+            let
+                ( newModel, cmd ) =
+                    Explorer.update msg modelView
+            in
+                ( { model | currentView = ViewExplorer newModel }
+                , Cmd.map MsgExplorer cmd
+                )
 
 
 updateViewer : Viewer.Msg -> Model -> Viewer.Model -> ( Model, Cmd Msg )
@@ -160,13 +166,20 @@ view model =
                 ]
 
 
+
 -- Subscriptions
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.currentView of
-        ViewViewer submodel -> Sub.map MsgViewer (Viewer.subscriptions submodel)
-        _ -> Sub.none
+        ViewViewer submodel ->
+            Sub.map MsgViewer (Viewer.subscriptions submodel)
+
+        _ ->
+            Sub.none
+
+
 
 -- Retrieve content from server
 
