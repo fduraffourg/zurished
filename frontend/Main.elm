@@ -1,163 +1,178 @@
-import Signal
-import Html exposing (..)
-import Task
-import Http
-import Struct
-import Debug
-import FolderView
-import ListView
-import Window
-import Keyboard
+module Main exposing (..)
 
-main : Signal Html
-main = Signal.map view
-  (Signal.foldp update initModel
-    (Signal.mergeMany
-        [ mb.signal
-        , windowSignal
-        , keyboardSignal
-        ])
-  )
+import Debug
+import Explorer
+import Html exposing (..)
+import Html.App as App
+import Http
+import MainMsg exposing (..)
+import Struct
+import Task
+import Viewer
+
+
+main =
+    App.program
+        { init = ( initModel, fetchContent )
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
 
 
 
 -- MODEL
 
-type alias Model =
-  { path : String
-  , content : Struct.TopContent
-  , currentView : View
-  , window : (Int, Int)
-  , resizeBoxes : List (Int, Int)
-  }
 
-type View = ExplorerView | ImageView ListView.Model
+type alias Model =
+    { path : String
+    , content : Struct.TopContent
+    , currentView : View
+    , window : ( Int, Int )
+    , resizeBoxes : List ( Int, Int )
+    }
+
+
+type View
+    = ViewExplorer Explorer.Model
+    | ViewViewer Viewer.Model
+    | ViewFetchFailed Http.Error
+
 
 initModel : Model
-initModel = { path = ""
-  , content = Struct.emptyTopContent
-  , currentView = ExplorerView
-  , window = (800, 600)
-  , resizeBoxes = []
-  }
+initModel =
+    { path = ""
+    , content = Struct.emptyTopContent
+    , currentView = ViewExplorer (Explorer.initModel "" [])
+    , window = ( 800, 600 )
+    , resizeBoxes = []
+    }
 
 
 
 -- UPDATE
 
-mb : Signal.Mailbox Action
-mb = Signal.mailbox NoOp
 
-type Action = UpdateContent Struct.TopContent
-    | ChangePath String
-    | ViewImages (List Struct.Image) Struct.Image
-    | ForwardViewer ListView.Action
-    | ExitListView
-    | ChangeWindowSize (Int, Int)
-    | ArrowPress (Int, Int)
-    | NoOp
+update : Msg -> Model -> ( Model, Cmd Msg )
+update action model =
+    case action of
+        MsgExplorer msg ->
+            case model.currentView of
+                ViewExplorer modelView ->
+                    updateExplorer msg model modelView
 
-update : Action -> Model -> Model
-update action model  =
-  case action of
-    UpdateContent content -> { model | content = content, resizeBoxes = content.sizes }
-    ChangePath path -> { model | path = path }
-    ViewImages list current ->
-      { model |
-        currentView = ImageView (ListView.initModel list current model.resizeBoxes model.window ) }
-    ForwardViewer lvaction ->
-      case model.currentView of
-        ImageView lvmodel -> { model |
-          currentView = ImageView (ListView.update lvaction lvmodel) }
-        _ -> model
-    ExitListView -> { model | currentView = ExplorerView }
-    ChangeWindowSize dimensions ->
-      case model.currentView of
-        ImageView lvmodel -> { model
-          | currentView = ImageView (ListView.update (ListView.ChangeWindowSize dimensions) lvmodel)
-          , window = dimensions
-      }
-        _ -> { model | window = dimensions }
-    ArrowPress dir -> case model.currentView of
-        ImageView lvmodel -> case dir of
-            (0,-1) -> update (ForwardViewer ListView.Next) model
-            (0, 1) -> update (ForwardViewer ListView.Prev) model
-            (-1, 0) -> update ExitListView model
-            _ -> model
-        _ -> model
-    NoOp -> model
+                _ ->
+                    ( model, Cmd.none )
+
+        MsgViewer msg ->
+            case model.currentView of
+                ViewViewer modelView ->
+                    updateViewer msg model modelView
+
+                _ ->
+                    ( model, Cmd.none )
+
+        FetchContentSucceed content ->
+            ( { model
+                | content = content
+                , resizeBoxes = content.sizes
+                , currentView =
+                    ViewExplorer (Explorer.initModel "" content.images)
+              }
+            , Cmd.none
+            )
+
+        FetchContentFailed error ->
+            ( { model | currentView = ViewFetchFailed error }, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updateExplorer : Explorer.Msg -> Model -> Explorer.Model -> ( Model, Cmd Msg )
+updateExplorer msg model modelView =
+    case msg of
+        Explorer.ChangePath path ->
+            let
+                nmv =
+                    Explorer.initModel path model.content.images
+            in
+                ( { model
+                    | path = path
+                    , currentView = ViewExplorer nmv
+                  }
+                , Cmd.none
+                )
+
+        Explorer.ViewImages list current ->
+            ( { model
+                | currentView = ViewViewer (Viewer.initModel list current model.resizeBoxes model.window)
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updateViewer : Viewer.Msg -> Model -> Viewer.Model -> ( Model, Cmd Msg )
+updateViewer msg model modelView =
+    case msg of
+        Viewer.Exit ->
+            ( { model
+                | currentView =
+                    ViewExplorer
+                        (Explorer.initModel model.path
+                            model.content.images
+                        )
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            let
+                model =
+                    { model
+                        | currentView = ViewViewer (Viewer.update msg modelView)
+                    }
+            in
+                ( model, Cmd.none )
 
 
 
 -- VIEW
 
-view : Model -> Html
+
+view : Model -> Html Msg
 view model =
-  case model.currentView of
-    ExplorerView -> FolderView.view
-      explorerAddress
-      (FolderView.initModel model.path model.content.images)
-    ImageView model -> ListView.view viewerAddress model
+    case model.currentView of
+        ViewExplorer model ->
+            App.map MsgExplorer (Explorer.view model)
+
+        ViewViewer model ->
+            App.map MsgViewer (Viewer.view model)
+
+        ViewFetchFailed error ->
+            div []
+                [ text "Failed to fetch image list from server"
+                , br [] []
+                , text (toString error)
+                ]
 
 
-listStringToHtml : String -> Html
-listStringToHtml string = li [] [ text string ]
+-- Subscriptions
 
-
-
--- Explorer connectors
-
-explorerAddress : Signal.Address FolderView.Action
-explorerAddress = Signal.forwardTo mb.address signalExplorerToMain
-
-signalExplorerToMain : FolderView.Action -> Action
-signalExplorerToMain action = case action of
-  FolderView.ChangePath path -> ChangePath path
-  FolderView.NoOp -> NoOp
-  FolderView.ViewImages list current -> ViewImages list current
-
-
--- Viewer connectors
-
-viewerAddress : Signal.Address ListView.Action
-viewerAddress = Signal.forwardTo mb.address signalViewerToMain
-
-signalViewerToMain : ListView.Action -> Action
-signalViewerToMain action =
-  case action of
-      ListView.Exit -> ExitListView
-      _ -> ForwardViewer action
-
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model.currentView of
+        ViewViewer submodel -> Sub.map MsgViewer (Viewer.subscriptions submodel)
+        _ -> Sub.none
 
 -- Retrieve content from server
 
-httpAddress : Signal.Address Struct.TopContent
-httpAddress = Signal.forwardTo mb.address signalHttpToMain
 
-signalHttpToMain : Struct.TopContent -> Action
-signalHttpToMain content = UpdateContent content
-
-
-port fetchString : Task.Task Http.Error ()
-port fetchString = Task.andThen
-  (Task.onError
-    (Http.get Struct.topContentDecoder "gallery")
-    (\msg -> Task.fail (Debug.log "Http.get error:" msg)))
-  (Signal.send httpAddress)
-
--- Get window size
-
-windowSignal : Signal Action
-windowSignal = Signal.map signalWindowToMain Window.dimensions
-
-signalWindowToMain : ( Int, Int ) -> Action
-signalWindowToMain dimensions = ChangeWindowSize dimensions
-
-
--- Handle Keyboard
-
-keyboardSignal : Signal Action
-keyboardSignal = Signal.map signalKeyboardToMain Keyboard.arrows
-
-signalKeyboardToMain : { a | x : Int, y : Int } -> Action
-signalKeyboardToMain dir = ArrowPress (dir.x, dir.y)
+fetchContent : Cmd Msg
+fetchContent =
+    Task.perform FetchContentFailed
+        FetchContentSucceed
+        (Http.get Struct.topContentDecoder "gallery")

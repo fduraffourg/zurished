@@ -33,7 +33,7 @@ replace_match_with_file
 # Insert JS code
 src=$out
 out=$TARGET/index.html
-pattern="href=\"dev.js\""
+pattern="src=\"dev.js\""
 file=$jsout
 opening="<script type=\"text/javascript\">"
 closing="</script>"
