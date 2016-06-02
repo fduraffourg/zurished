@@ -22,8 +22,9 @@ replace_match_with_file() {
 }
 
 # Insert CSS style
+tmpfile=`mktemp`
 src=dev.html
-out=`mktemp`
+out=$tmpfile
 pattern="href=\"style.css\""
 file=style.css
 opening="<style>"
@@ -31,10 +32,14 @@ closing="</style>"
 replace_match_with_file
 
 # Insert JS code
-src=$out
+src=$tmpfile
 out=$TARGET/index.html
 pattern="src=\"dev.js\""
 file=$jsout
 opening="<script type=\"text/javascript\">"
 closing="</script>"
 replace_match_with_file
+
+rm $jsout $tmpfile
+
+echo "Generated $out with success"
