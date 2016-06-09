@@ -1,15 +1,17 @@
 module Viewer exposing (Model, initModel, Msg(..), update, view, subscriptions)
 
-import List
-import Html exposing (..)
-import Html.Events exposing (..)
-import Html.Attributes exposing (width, height, classList, style, src, id, class)
-import Debug
 import Array exposing (Array)
 import Basics exposing (round, toFloat, min)
-import Maybe
-import FontAwesome
 import Color
+import FontAwesome
+import Html exposing (..)
+import Html.App as App
+import Html.Attributes exposing (width, height, classList, style, src, id, class)
+import Html.Events exposing (on, targetValue, onClick)
+import Json.Decode as Json
+import List
+import Maybe
+import Preload
 import Struct exposing (Image)
 import Window
 
@@ -25,7 +27,7 @@ type alias Model =
     , resizeBoxes : List ( Int, Int )
     , resizeBox : ( Int, Int )
     , currentUrl : String
-    , preloadUrl : Maybe String
+    , preload : Preload.Model
     }
 
 
@@ -34,15 +36,21 @@ initModel list current resizeBoxes window =
     let
         resizeBox =
             chooseResizeBox resizeBoxes window
+
+        content =
+            Array.fromList list
+
+        position =
+            getCurrentPosition list current
     in
-        { content = Array.fromList list
+        { content = content
         , current = current
-        , position = getCurrentPosition list current
+        , position = position
         , window = window
         , resizeBoxes = resizeBoxes
         , resizeBox = resizeBox
         , currentUrl = getUrl resizeBox current
-        , preloadUrl = Nothing
+        , preload = Preload.initModel content position
         }
 
 
@@ -77,6 +85,7 @@ type Msg
     | Prev
     | Exit
     | WindowSize Window.Size
+    | Preloaded
     | NoOp
 
 
@@ -94,9 +103,7 @@ update action model =
                             | position = position
                             , current = elm
                             , currentUrl = getUrl model.resizeBox elm
-                            , preloadUrl =
-                                Array.get (position + 1) model.content
-                                    |> Maybe.map (getUrl model.resizeBox)
+                            , preload = Preload.updateGoNext model.preload
                         }
 
                     Nothing ->
@@ -113,7 +120,7 @@ update action model =
                             | position = position
                             , current = elm
                             , currentUrl = getUrl model.resizeBox elm
-                            , preloadUrl = Nothing
+                            , preload = Preload.updateGoPrev model.preload
                         }
 
                     Nothing ->
@@ -129,6 +136,7 @@ update action model =
                     , resizeBox = chooseResizeBox model.resizeBoxes window
                 }
 
+        Preloaded -> { model | preload = Preload.updateLoaded model.preload}
         _ ->
             model
 
@@ -181,10 +189,10 @@ view model =
                 "img-fullwidth"
 
         preload =
-            Maybe.withDefault "" model.preloadUrl
+            viewPreload model
     in
         div []
-            [ img [ src preload, width 0, height 0, style [ ( "display", "none" ) ] ] []
+            [ div [ style [("display", "none")]] preload
             , div [ id "iv-img-container" ]
                 [ img
                     [ src model.currentUrl
@@ -204,6 +212,37 @@ view model =
                 [ navButton [] Exit
                 ]
             ]
+
+
+viewPreload : Model -> List (Html Msg)
+viewPreload model =
+    let
+        ( preloaded, preloadable ) =
+            Preload.list model.preload model.content
+
+        srcAttr =
+            \i -> src (getUrl model.resizeBox i)
+
+        htmlPreloaded =
+            Array.map (\i -> img [ srcAttr i] []) preloaded
+
+        html =
+            case preloadable of
+                Just i ->
+                    let
+                        image =
+                            img
+                                [ srcAttr i
+                                , on "load" (Json.succeed Preloaded)
+                                ]
+                                []
+                    in
+                        Array.push image htmlPreloaded
+
+                Nothing ->
+                    htmlPreloaded
+    in
+        Array.toList html
 
 
 
