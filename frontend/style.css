@@ -22,6 +22,10 @@ h1 { padding: 14px; background-color: #086788; margin: 0px; color: white; font-w
 #iv-img-container > .img-fullwidth { width: 100%; }
 #iv-img-container > .img-fullheight { height: 100%; }
 
+.mainError { border-top: 40px solid #086788; padding-top: 50px}
+.mainError > .message, .mainError > .error { width: 500px; margin: 8px auto; text-align: center; }
+.mainError > .error { font-family: monospace; white-space: pre; }
+
 // color1 = "#086788"
 // color2 = "#06aed5"
 // color3 = "#f0c808"

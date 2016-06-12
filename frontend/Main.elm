@@ -9,6 +9,7 @@ import MainMsg exposing (..)
 import Struct
 import Task
 import Viewer
+import Widgets
 
 
 main =
@@ -159,11 +160,8 @@ view model =
             App.map MsgViewer (Viewer.view model)
 
         ViewFetchFailed error ->
-            div []
-                [ text "Failed to fetch image list from server"
-                , br [] []
-                , text (toString error)
-                ]
+            Widgets.mainError "Failed to fetch image list from server"
+                (toString error)
 
 
 
