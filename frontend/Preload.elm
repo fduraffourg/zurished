@@ -2,7 +2,6 @@ module Preload exposing (Model, initModel, Msg(..), updateLoaded, updateGoNext, 
 
 import Array exposing (Array)
 import Basics
-import Debug
 import Struct exposing (Image)
 import Html exposing (Html, img, div)
 import Html.Attributes exposing (src)
@@ -118,9 +117,6 @@ list model medias =
             ( Array.slice model.next (model.next + 1) medias, Nothing )
         else
             let
-                useless =
-                    Debug.log "model" model
-
                 preloadCount =
                     Basics.min maxNumPreload
                         (Basics.abs model.uniDirCnt)
